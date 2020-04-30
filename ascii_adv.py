@@ -569,11 +569,6 @@ STANCE_GLYPH = [
     '+',
     '|']
 
-WEATHER = [
-    'BLUE SKY',
-    'SOME CLOUD',
-    'CLOUDY']
-
 GREETINGS = [
     ['hello', 'hello'],
     ['hi', 'hi'],
@@ -3212,8 +3207,70 @@ def Descr(item):
         text = '~ ~ ~' + space + 'mist of ' + CHEMN[item.chem]
     return text
 
+def Clock():
+    sec = turn // 2
+    hour = sec//3600
+    minute = sec%3600//60
+    if hour >= 24:
+        hour = 0
+    return (hour, minute)
+
+def Sun(hour):
+    if hour <= 11:
+        d = 'E'
+    elif hour <= 13:
+        d = 0
+    else:
+        d = 'W'
+    return d
+
+def Moon(hour):
+    if hour <= 1:
+        d = 0
+    elif 1 < hour <= 12:
+        d = 'W'
+    elif 12 < hour < 23:
+        d = 'E'
+    else:
+        d = 0
+    return d
+
+SKYFRBL = {
+    'F': (-2, -1),
+    'FR': (-1, -1),   
+    'R': (2, -1),
+    'BR': (2, 0),
+    'B': (2, 1),
+    'BL': (1, 1),
+    'L': (-2, 1),
+    'FL': (-2, 0)}
+
+MOONPH = ['NO', 'NEW', 'HALF', 'FULL']
+
 def Sky():
+    ##Sky
     tcod.console_clear(sky_pnl)
+    ho, mi = Clock()
+    sun = False
+    moon = False
+    if 6 <= ho <= 18:
+        if cloud <= 0:
+            weather = 'BLUE SKY'
+            sun = True
+        elif cloud <= 1:
+            weather = 'SOME CLOUDS'
+            sun = True
+        else:
+            weather = 'CLOUDY'
+    else:
+        if cloud <= 0:
+            weather = 'STARRY SKY'
+            moon = True
+        elif cloud <= 1:
+            weather = 'SOME NIGHT CLOUDS'
+            moon = True
+        else:
+            weather = 'GLOOMY NIGHT SKY'
     if isinstance(at.room, Room) or isinstance(at.room, Door):
         if at.room.ceiling:
             text = 'CEILING'
@@ -3221,15 +3278,40 @@ def Sky():
             text = weather
     else:
         text = weather
+    p, q = (SKY_WD//2, SKY_HT//2)
     txtlen = len(text)
+    xw = p - txtlen
     tcod.console_print_ex(
-        sky_pnl, SKY_WD//2-txtlen//2-4, SKY_HT//2,
+        sky_pnl, xw, q,
         tcod.BKGND_NONE, tcod.LEFT,
         text)
+    cele = ''
+    if sun:
+        ds = Sun(ho)
+        cele = 'SUN'
+    elif moonph > 0 and moon:
+        ds = Moon(ho)
+        cele = MOONPH[moonph] + ' MOON'
+    if cele:
+        if ds == 0:
+            xs = p - txtlen//2 - 2
+            ys = 0
+        else:
+            ds1 = NESWtoFRBL(at.facing, ds)
+            u, v = SKYFRBL[ds1]
+            xs = (xw+p)//2 + txtlen//2*u
+            if u < 0:
+                xs -= len(cele)
+            ys = q + v
+        tcod.console_print_ex(
+            sky_pnl, xs, ys,
+            tcod.BKGND_NONE, tcod.LEFT,
+            cele)
     tcod.console_blit(
         sky_pnl, 0, 0,
         SKY_WD, SKY_HT, 0,
         SKY_LF, SKY_TP)
+    ##Floor
     tcod.console_clear(floor_pnl)
     text = ''
     if at.room.flomat:
@@ -3624,13 +3706,13 @@ def Debug():
             wield += str(weapon)
         else:
             wield += 'None'
-    for i in cur_item_list:
-        if i.tipo == 'guard':
-            gu = i
-            break
-    gutask = ''
-    for ts in gu.task:
-        gutask += ts.name
+##    for i in cur_item_list:
+##        if i.tipo == 'guard':
+##            gu = i
+##            break
+##    gutask = ''
+##    for ts in gu.task:
+##        gutask += ts.name
     text = (
         '@ ' + str(at.x) + ' ' + str(at.y) + ' ' + str(at.room) + '\n'
         + str(at.body) + '\n'
@@ -3640,8 +3722,7 @@ def Debug():
         + 'facing ' + at.facing + '\n'
         + str(at.poison) + '\n'
         + wield + '\n'
-        + gutask + '\n'
-        + str(gu.tls) + '\n'
+        + str(Clock()) + str(moonph) + '\n'
         + roomitem + '\n')
     
     tcod.console_print_ex(
@@ -4016,7 +4097,8 @@ Intro()
 #Initialize
 cur_item_list = []
 
-weather = random.choice(WEATHER)
+cloud = random.randint(0, 2)
+moonph = random.randint(0, 3)
 
 worldmap = []
 town = MakeTown()
@@ -4040,7 +4122,7 @@ autoscope = None
 message_x = 0
 messagebuffer = ''
 Message('')
-turn = 0
+turn = (3600*5+60*50)*2
 
 #Loop
 while not tcod.console_is_window_closed():
