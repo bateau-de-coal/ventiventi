@@ -190,12 +190,16 @@ ALICE = [
     'Alice',
     'Bahar',
     'Charlene',
+    'Cici',
+    'Coco',
     'Doris',
     'Ellen',
     'Faustina',
     'Gabriela',
     'Helene',
     'Ilsa',
+    'Jesse',
+    'Jenny',
     'Jo',
     'Kacey',
     'Liza',
@@ -221,13 +225,18 @@ BOB = [
     'Gabriel',
     'Harold',
     'Idris',
+    'Jack',
+    'Jackie',
     'Johan',
+    'Kevin',
     'Lars',
     'Manfred',
+    'Michael',
     'Noah',
     'Novak',
     'Norman',
     'Omer',
+    'Oswald',
     'Peter',
     'Ryan',
     'Silvester',
@@ -235,6 +244,7 @@ BOB = [
     'Tony',
     'Ulric',
     'Vadim',
+    'Vince',
     'Walter',
     'Yaqub']
     
@@ -2108,14 +2118,18 @@ def Use():
     result = None
     refresh = True
     ##Write the choices
-    for item in LooseItems(exclude_f=False):
-        ##Pick up an item
-        if Distance(at, item) == 0 and item.tipo not in TOO_HEAVY and item != at:
-            text = 'pick up ' + NameSco(item)
-            for o in at.order:
-                if o.status == 'WAITING FOR PICKUP' and o.good == item:
-                    text += '    BOUGHT'
-            selec.append([text, ('p', item)])
+    for item in LooseItems(exclude_f=False):        
+        if item != at and Distance(at, item) == 0:
+            if item.tipo not in TOO_HEAVY:
+                ##Pick up
+                text = 'pick up ' + NameSco(item)
+                for o in at.order:
+                    if o.status == 'WAITING FOR PICKUP' and o.good == item:
+                        text += '    BOUGHT'
+                selec.append([text, ('p', item)])
+            elif item.tipo == 'bell':
+                ##Bell
+                selec.append(['pull bell string', ('pbs', item)])
         ##Trade
         if at.speaking <= 0 and item != at and item.shk:
             d = '    ' + NESWtoFRBL(at.facing, Direction(at, item, dn='cardinal'))
@@ -2179,6 +2193,16 @@ def Use():
                         Message('you have no hand')
                     elif not free_hand:
                         Message('your hands are full')
+                ##Bell
+                elif action == 'pbs':
+                    if at.HasPart('arm'):
+                        Message(at.Name() + ' pulls the string')
+                        text = 'ding ding ding'
+                        Message(text)
+                        Prompt(text)
+                        at.time -= 10
+                    else:
+                        Message('you have no hand')
                 ##Another menu for trading
                 elif action == 't':
                     selec = []
@@ -2776,7 +2800,7 @@ def Wield():
 def Shop():
     selec = []
     for o in at.order:
-        selec.append([o.buyer.name + ' : ' + str(o.price) + ' gold : ' + o.seller.name + ' : ' + o.good.Name() + ' ' + o.status, o])
+        selec.append([o.buyer.name + ' : ' + str(o.price//100) + ' gold : ' + o.seller.name + ' : ' + o.good.Name() + ' ' + o.status, o])
     if selec:
         chosen = Menu('orders', selec, refresh=False)
         if chosen is not None:
@@ -3024,7 +3048,7 @@ SCOCEN = (SCOGRIDWD+5, SCOGRIDHT+5)
 font_path = 'dejavu_wide16x16_gs_tc.png'
 font_flags = tcod.FONT_TYPE_GREYSCALE | tcod.FONT_LAYOUT_TCOD
 tcod.console_set_custom_font(font_path, font_flags)
-window_title = 'room'
+window_title = 'ASCII Adventure 2020'
 fullscreen = False
 tcod.console_init_root(SCREEN_WD, SCREEN_HT, window_title, fullscreen)
 tcod.console_set_default_foreground(0, tcod.white)
@@ -3103,6 +3127,7 @@ KEY_DICT = {
     'g': 'GIVE',
     'w': 'WIELD',
     'm': 'POUCH',
+    'M': 'MAP',
     '?': 'HELP',
     'ESC': 'EXIT'}
 
@@ -3166,15 +3191,9 @@ def Descr(item):
             else:
                 text = item.tipo
             if item.room.bmap[0][0] == 3:
-                if item.tipo == 'door':
-                    glyph = '+'
-                else:
-                    glyph = '|+|'
+                glyph = '|+|'
             else:
-                if item.tipo == 'door':
-                    glyph = '\''
-                else:
-                    glyph = '|\'|'
+                glyph = '|\'|'
             if item.lock:
                 if item.locked:
                     glyph += 'L'
@@ -3206,6 +3225,59 @@ def Descr(item):
     elif isinstance(item, AOE):
         text = '~ ~ ~' + space + 'mist of ' + CHEMN[item.chem]
     return text
+
+def WMap():
+    text = ''
+    xmin, xmax = (0, 40)
+    ymin, ymax = (0, 40)
+    p, q = (20, 20)
+    radius = 17
+    for y in range(ymin, ymax+1):
+        for x in range(xmin, xmax+1):
+            if abs(x-p) <= radius and abs(y-p) <= 1:
+                text += '~'
+            elif abs(x-p) <= 1 and p<=y<=p+radius:
+                text += '~'
+            else:
+                d = (abs(x-p)**2 + abs(y-q)**2)**0.5
+                d = math.ceil(d)
+                if abs(d-radius) <= 1:
+                    text += '*'
+                else:
+                    text += ' '
+        text += '\n'
+    window = tcod.console_new(SCREEN_WD, SCREEN_HT)
+    tcod.console_set_default_foreground(window, tcod.white)
+    tcod.console_set_default_background(window, tcod.grey)
+    tcod.console_clear(window)
+    tcod.console_print_ex(
+        window, 0, 0,
+        tcod.BKGND_NONE, tcod.LEFT,
+        text)
+    for st, coordinate in wmapsite.items():
+        glyph = '***'
+        if 'mountain' in st.name:
+            glyph = 'MONT.'
+        elif 'Town' in st.name:
+            glyph = 'TOWN'
+        x, y = coordinate
+        tcod.console_print_ex(
+            window, x-len(glyph)//2, y,
+            tcod.BKGND_NONE, tcod.LEFT,
+            glyph)
+    mare = 'M~A~R~E~H~O~U~D~I~N~A~&'
+    tcod.console_print_ex(
+        window, p-len(mare)//2, q,
+        tcod.BKGND_NONE, tcod.LEFT,
+        mare)
+    tcod.console_blit(
+        window, 0, 0,
+        SCREEN_WD, SCREEN_HT, 0,
+        0, 0)
+    tcod.console_flush()
+    command_dict = {
+        'ESC': 'exit'}
+    command = GetCommand(command_dict)
 
 def Clock():
     sec = turn // 2
@@ -3250,33 +3322,30 @@ MOONPH = ['NO', 'NEW', 'HALF', 'FULL']
 def Sky():
     ##Sky
     tcod.console_clear(sky_pnl)
-    ho, mi = Clock()
-    sun = False
-    moon = False
-    if 6 <= ho <= 18:
-        if cloud <= 0:
-            weather = 'BLUE SKY'
-            sun = True
-        elif cloud <= 1:
-            weather = 'SOME CLOUDS'
-            sun = True
-        else:
-            weather = 'CLOUDY'
+    if (isinstance(at.room, Room) or isinstance(at.room, Door)) and at.room.ceiling:        
+        text = 'CEILING'
     else:
-        if cloud <= 0:
-            weather = 'STARRY SKY'
-            moon = True
-        elif cloud <= 1:
-            weather = 'SOME NIGHT CLOUDS'
-            moon = True
+        ho, mi = Clock()
+        sun = False
+        moon = False
+        if 6 <= ho <= 18:
+            if cloud <= 0:
+                weather = 'BLUE SKY'
+                sun = True
+            elif cloud <= 1:
+                weather = 'SOME CLOUDS'
+                sun = True
+            else:
+                weather = 'CLOUDY'
         else:
-            weather = 'GLOOMY NIGHT SKY'
-    if isinstance(at.room, Room) or isinstance(at.room, Door):
-        if at.room.ceiling:
-            text = 'CEILING'
-        else:
-            text = weather
-    else:
+            if cloud <= 0:
+                weather = 'STARRY SKY'
+                moon = True
+            elif cloud <= 1:
+                weather = 'SOME NIGHT CLOUDS'
+                moon = True
+            else:
+                weather = 'GLOOMY NIGHT SKY'
         text = weather
     p, q = (SKY_WD//2, SKY_HT//2)
     txtlen = len(text)
@@ -3285,28 +3354,29 @@ def Sky():
         sky_pnl, xw, q,
         tcod.BKGND_NONE, tcod.LEFT,
         text)
-    cele = ''
-    if sun:
-        ds = Sun(ho)
-        cele = 'SUN'
-    elif moonph > 0 and moon:
-        ds = Moon(ho)
-        cele = MOONPH[moonph] + ' MOON'
-    if cele:
-        if ds == 0:
-            xs = p - txtlen//2 - 2
-            ys = 0
-        else:
-            ds1 = NESWtoFRBL(at.facing, ds)
-            u, v = SKYFRBL[ds1]
-            xs = (xw+p)//2 + txtlen//2*u
-            if u < 0:
-                xs -= len(cele)
-            ys = q + v
-        tcod.console_print_ex(
-            sky_pnl, xs, ys,
-            tcod.BKGND_NONE, tcod.LEFT,
-            cele)
+    if text != 'CEILING':
+        cele = ''
+        if sun:
+            ds = Sun(ho)
+            cele = 'SUN'
+        elif moonph > 0 and moon:
+            ds = Moon(ho)
+            cele = MOONPH[moonph] + ' MOON'
+        if cele:
+            if ds == 0:
+                xs = p - txtlen//2 - 2
+                ys = 0
+            else:
+                ds1 = NESWtoFRBL(at.facing, ds)
+                u, v = SKYFRBL[ds1]
+                xs = (xw+p)//2 + txtlen//2*u
+                if u < 0:
+                    xs -= len(cele)
+                ys = q + v
+            tcod.console_print_ex(
+                sky_pnl, xs, ys,
+                tcod.BKGND_NONE, tcod.LEFT,
+                cele)
     tcod.console_blit(
         sky_pnl, 0, 0,
         SKY_WD, SKY_HT, 0,
@@ -3519,7 +3589,7 @@ def Message(text):
         message_x += 2
 
 def Prompt(content, refresh=True):
-    wd = SCREEN_WD // 3
+    wd = SCREEN_WD // 2
     ht = SCREEN_HT
     window = tcod.console_new(wd, ht)
     tcod.console_set_default_foreground(window, tcod.white)
@@ -3561,7 +3631,7 @@ PMMC = '''Press 'm' to select multiple coins'''
 
 def Menu(title, items, escapable=True, refresh=True, multismall=False, fnote=None):
     if items:
-        window = tcod.console_new(SCREEN_WD // 3, SCREEN_HT)
+        window = tcod.console_new(SCREEN_WD//2, SCREEN_HT)
         tcod.console_set_default_foreground(window, tcod.white)
         tcod.console_set_default_background(window, tcod.grey)
         tcod.console_clear(window)
@@ -3985,6 +4055,7 @@ KEY BINDING
     g    GIVE
     w    WIELD/SHEATHE
     m    COLLECT/STORE GOLD COINS
+    M    MAP
     ?    HELP
     ESC  EXIT
 
@@ -3997,15 +4068,15 @@ INTERFACE
                       STATUS     STATUS
     LEFT      BACK      EQUIPMENT  EQUIPMENT
     WALL      WALL
-        TERRAIN
-        
-       *
-      ` "
-     ^   ^
-    -     -
-     _   _
+  ^     TERRAIN
+  |     
+<-+->  *              | STANDING
+  |   ` "
+  v  ^   ^            + CROUCHING
+    -  @  -
+     _   _            _ PRONING
       , "
-       .
+       .              U UNBALANCED
 '''
     
     window = tcod.console_new(SCREEN_WD, SCREEN_HT)
@@ -4035,7 +4106,7 @@ def Intro():
     q = SCREEN_HT//2
     y = 0
     ## Print choices
-    for entry in ['start', 'help', 'exit']:
+    for entry in ['START', 'HELP', 'EXIT']:
         tcod.console_print_ex(
             window, p+2, q+y,
             tcod.BKGND_NONE, tcod.LEFT,
@@ -4105,10 +4176,28 @@ town = MakeTown()
 ##tower = Site(100, 98, 'Tower')
 mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW')
 
+CITYPLACE = (15, 24, 15, 18)
+wmapsite = {}
+for st in worldmap:
+    if st.name:
+        counter = 0
+        while True:
+            counter += 1
+            xmin, xmax, ymin, ymax = CITYPLACE
+            x = random.randint(xmin, xmax)
+            y = random.randint(ymin, ymax)
+            for coordinate in wmapsite.values():
+                u, v = coordinate
+                if max(abs(x-u), abs(y-v)) > 3:
+                    break
+            if counter > 100:
+                break
+        wmapsite[st] = (x, y)
+
 for r in town.room_list:
-    if r.name == 'smith':
+    if r.name == 'mayor':
         r_at = r
-at = Item('adv', 99, 99, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
+at = Item('adv', 90, 90, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
 ##for i in range(3):
 ##    Item('gold', at.x, at.y, at.room, name='gold coin')
 at.skill['fight'] = 1
@@ -4134,107 +4223,78 @@ while not tcod.console_is_window_closed():
         FourViews()
         taskf = []
         taskn = []
-        for ts in at.task:
-            name = ts.name
-            detail = ts.detail
-            if name == 'ask for quest':
-                giver, delay = detail
-                if CanSee(at, giver):
-                    if delay > 0:
-                        ts.detail = [giver, delay-1]
-                    else:
-                        if at.Say('Hi, ' + giver.Name() + '! What can I do for you?', True):
-                            giver.task.append(Task('give quest', ['gnome', at]))
+        if at.anim:
+            for ts in at.task:
+                name = ts.name
+                detail = ts.detail
+                if name == 'ask for quest':
+                    giver, delay = detail
+                    if CanSee(at, giver):
+                        if delay > 0:
+                            ts.detail = [giver, delay-1]
+                        else:
+                            if at.Say('Hi, ' + giver.Name() + '! What can I do for you?', True):
+                                giver.task.append(Task('give quest', ['gnome', at]))
+                                taskf.append(ts)
+                elif name == 'answer':
+                    ans, interrogator = detail
+                    for i in PURPOSE:
+                        if i[1] == answer:
+                            text = i[0]
+                            break                
+                    if at.Say(text, True):
+                        if answer in ['thief', 'secret']:
+                            for gd in interrogator.room.site.guard:
+                                gd.attack = at
+                                gd.LocTar(at)
+                            interrogator.task.append(Task('theft alarm', None))
+                        else:
+                            interrogator.task.append(Task('huh', None))
+                        taskf.append(ts)
+                        town.guest.append(at)
+                elif name == 'agree on price b':
+                    price, seller, good = detail
+                    if at.Au() < price:
+                        if at.Say('I don\'t have enough money', True):
+                            seller.task.append(Task('beat scammer', at))
+                            seller.attacksp = at
                             taskf.append(ts)
-            elif name == 'answer':
-                ans, interrogator = detail
-                for i in PURPOSE:
-                    if i[1] == answer:
-                        text = i[0]
-                        break                
-                if at.Say(text, True):
-                    if answer in ['thief', 'secret']:
-                        for gd in interrogator.room.site.guard:
-                            gd.attack = at
-                            gd.LocTar(at)
-                        interrogator.task.append(Task('theft alarm', None))
                     else:
-                        interrogator.task.append(Task('huh', None))
-                    taskf.append(ts)
-                    town.guest.append(at)
-            elif name == 'agree on price b':
-                price, seller, good = detail
-                if at.Au() < price:
-                    if at.Say('I don\'t have enough money', True):
-                        seller.task.append(Task('beat scammer', at))
-                        seller.attacksp = at
+                        if at.Say('deal!', True):
+                            ordered = False
+                            for o in item.order:
+                                if o.good == good:
+                                    ordered = True
+                            if not ordered:
+                                order = Order(at, price, seller, good)
+                                at.order.append(order)
+                                seller.order.append(order)
+                            taskf.append(ts)
+                elif name == 'haggle':
+                    price1, seller, good = detail
+                    text = str(price1//100) + ' gold?'
+                    if at.Say(text, True):
+                        seller.task.append(Task('agree on price s', [price1, seller, good]))
                         taskf.append(ts)
-                else:
-                    if at.Say('deal!', True):
-                        ordered = False
-                        for o in item.order:
-                            if o.good == good:
-                                ordered = True
-                        if not ordered:
-                            order = Order(at, price, seller, good)
-                            at.order.append(order)
-                            seller.order.append(order)
-                        taskf.append(ts)
-            elif name == 'haggle':
-                price1, seller, good = detail
-                text = str(price1//100) + ' gold?'
-                if at.Say(text, True):
-                    seller.task.append(Task('agree on price s', [price1//100, seller, good]))
-                    taskf.append(ts)
-            elif name == 'cancel order':
-                o = detail
-                text = 'I don\'t want ' + o.good.Name() + ' anymore'
-                if at.Say(text, True):
-                    at.order.remove(o)
-                    o.seller.task.append(Task('beat scammer', at))
-                    o.seller.attacksp = at
-                    taskf.append(ts)                    
-        for ts in taskf:
-            at.task.remove(ts)
-        for ts in taskn:
-            at.task.append(ts)
+                elif name == 'cancel order':
+                    o = detail
+                    text = 'I don\'t want ' + o.good.Name() + ' anymore'
+                    if at.Say(text, True):
+                        at.order.remove(o)
+                        o.seller.task.append(Task('beat scammer', at))
+                        o.seller.attacksp = at
+                        taskf.append(ts)                    
+            for ts in taskf:
+                at.task.remove(ts)
+            for ts in taskn:
+                at.task.append(ts)
         command = GetCommand(KEY_DICT)
         if command == 'EXIT':
             sys.exit()
-        elif command in FRBL or command.startswith('t'):
-            if command.startswith('t'):
-                to = command[1:]
-                result = at.Walk(to, translate=True)
-            else:
-                result = at.Walk(command)
-            if result == 'CAN_PASS':
-                pass
-            elif result == 'BLOCKED':
-                Message('thump')
-            elif result == 'NO_LEG':
-                Message('you have no legs')
-            elif result == 'WEAK':
-                Message('your legs feel powerless')
         elif command == 'WAIT':
             at.time -= 10
-        elif command == 'USE':
-            Use()
-        elif command == 'INV':
-            Inv()
-        elif command == 'ATTACK':
-            Hit()
-        elif command == 'AUTO-ATTACK':
-            Hit(tab=True)
         elif command == 'VIEW':
             scope = View()
-        elif command == 'SHOP':
-            Shop()
-        elif command == 'GIVE':
-            Give()
-        elif command == 'POUCH':
-            Pouch()
-        elif command == 'WIELD':
-            Wield()
         elif command == 'HELP':
             Help()
             tcod.console_blit(
@@ -4242,6 +4302,39 @@ while not tcod.console_is_window_closed():
                 MESSAGE_PNL_WD, MESSAGE_PNL_HT, 0,
                 MESSAGE_PNL_LF, MESSAGE_PNL_TP)
             tcod.console_flush()
+        elif at.anim:
+            if command in FRBL or command.startswith('t'):
+                if command.startswith('t'):
+                    to = command[1:]
+                    result = at.Walk(to, translate=True)
+                else:
+                    result = at.Walk(command)
+                if result == 'CAN_PASS':
+                    pass
+                elif result == 'BLOCKED':
+                    Message('thump')
+                elif result == 'NO_LEG':
+                    Message('you have no legs')
+                elif result == 'WEAK':
+                    Message('your legs feel powerless')
+            elif command == 'USE':
+                Use()
+            elif command == 'INV':
+                Inv()
+            elif command == 'ATTACK':
+                Hit()
+            elif command == 'AUTO-ATTACK':
+                Hit(tab=True)
+            elif command == 'SHOP':
+                Shop()
+            elif command == 'GIVE':
+                Give()
+            elif command == 'POUCH':
+                Pouch()
+            elif command == 'WIELD':
+                Wield()
+            elif command == 'MAP':
+                WMap()
     for item in cur_item_list:
         if item.anim:
             if item != at:
