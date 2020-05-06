@@ -646,12 +646,13 @@ def DefaultStance(tipo):
 
 class Site:
     '''A site on worldmap'''
-    def __init__(self, x, y, name=None, natfl='GRAVEL'):
+    def __init__(self, x, y, name=None, natfl='GRAVEL', walltype='stone wall'):
 
         self.x = x
         self.y = y
         self.name = name
         self.natfl = natfl  ##Natural floor
+        self.walltype = walltype
         self.room_list = []
         Field(400, 400, self)
         self.citizen = []
@@ -810,6 +811,10 @@ class AOE:
         self.room = room
         self.strength = strength
         self.radius = radius
+        self.name = 'mist of ' + CHEMN[chem]
+
+    def Name(self):
+        return self.name
 
 class Item:
     '''An item'''
@@ -1897,6 +1902,24 @@ def Distance(a, b):
     d = max(abs(dx), abs(dy))
     if isinstance(b, Site):
         d *= 1000
+    return d
+
+def Discen(x, y):
+    '''Only used in 400-400-200-200 Field'''
+    p, q = (199, 199)
+    radius = 100
+    dx = abs(x-p)
+    dy = abs(y-q)
+    if dx > dy:
+        if x > p:
+            d = dx - radius
+        else:
+            d = dx - radius + 1
+    else:
+        if y > q:
+            d = dy - radius
+        else:
+            d = dy - radius + 1
     return d
 
 def DFW(item, to):
@@ -3035,13 +3058,28 @@ def View():
             space = ' ' * len(text) + '  '
             for j in i.finvt:
                 selec.append([space + NameSco(j), j])
+    if isinstance(at.room, Field):
+        if at.room.town:
+            wl = Discen(at.x, at.y)
+            if wl <= 1:
+                wl = '///'
+            d = Direction(at, (199, 199), dn='cardinal')
+            d = NESWtoFRBL(at.facing, d)
+            selec.append([d + ' ' + str(wl) + '    ' + at.room.site.walltype, 'wall'])
+    else:
+        for d in ['N', 'E', 'S', 'W']:
+            wl = DFW(at, d)
+            if isinstance(wl, int):
+                d = NESWtoFRBL(at.facing, d)
+                selec.append([d + ' ' + str(wl) + '    ' + at.room.site.walltype, 'wall'])
         
     if selec:
         chosen = Menu('view?', selec)
         if chosen:
-            item = chosen
-            Scope(item)
-            return item
+            if isinstance(chosen, Item):
+                item = chosen
+                Scope(item)
+                return item
             
 ##Interface
 SCREEN_WD = 200
@@ -3489,7 +3527,7 @@ def FourViews():
         ##Items
         for i in direction_item_dict[d]:
             dis = item_distance_dict[i]
-            if i.tipo in DOOR and dis == 1:
+            if i.tipo in DOOR+['inscription'] and dis == 1:
                 distx = '///'
             else:
                 distx = str(dis) + 'm'
@@ -3599,11 +3637,8 @@ def FourViews():
                     ##<<@>>
                     ##..v..
                     cx, cy = (199, 199)
-                    rd = 100
                     if d == Direction(at, (cx, cy)):
-                        dx = abs(cx-at.x)
-                        dy = abs(cy-at.y)
-                        dfw = max(dx, dy) - rd
+                        dfw = Discen(at.x, at.y)
                         wallwd = DISPWALLWD // 2  ##Corner wall is half wall
             if isinstance(dfw, int):
                 if dfw > 10:
@@ -3642,7 +3677,7 @@ def FourViews():
         FOUR_VIEWS_PNL_LF, FOUR_VIEWS_PNL_TP)
     tcod.console_flush()
 
-    if scope and (scope.room == at.room or scope.room in at.room.portal):
+    if scope and CanSee(at, scope):
         Scope(scope)
         scope = None
     else:
@@ -3661,7 +3696,11 @@ def FourViews():
                 autoscope = None
                 Scope(nearest)
         elif autoscope:
-            Scope(autoscope)
+            if CanSee(autoscope):
+                Scope(autoscope)
+            else:
+                autoscope = None
+                Scope(None)
         elif nearest:
             Scope(nearest)
         else:
@@ -4307,7 +4346,7 @@ def MakeTown(roomnum=3):
     return town
 
 def MakeCave():
-    mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW')
+    mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW', walltype='rock slope')
     field = mountain.room_list[0]
     cave = Room(30, 30, mountain)
     side = random.randint(0, 3)
@@ -4699,7 +4738,7 @@ while not tcod.console_is_window_closed():
                             if item.Say(text, prompt=True, pr=False):
                                 selec = [['agree on price', 'a']]
                                 price1 = price * 6 // 10
-                                if price1 >= 100:
+                                if price1 >= 100 and price - price1 > 100:
                                     selec.append(['haggle', 'h'])
                                 reply = Menu(text, selec,refresh=False)
                                 if reply == 'a':
@@ -4747,6 +4786,16 @@ while not tcod.console_is_window_closed():
                                 o.seller.order.remove(o)
                                 o.buyer.order.remove(o)
                             thieves += new_thief
+                            for pt in item.room.portal.keys():
+                                if pt.bmap[0][0] == 3:
+                                    pt.bmap[0][0] = 2
+                                    for rm in pt.portal.keys():
+                                        dox, doy = rm.portal[pt]
+                                        rm.bmap[dox][doy] = 2
+                                    if CanSee(at, pt.door):
+                                        tx = pt.door.Name() + ' opens'
+                                        Message(tx)
+                                        Prompt(tx)
                         elif name == 'enemy alarm':
                             enemy = detail
                             if item.Say('enemy!', True):
