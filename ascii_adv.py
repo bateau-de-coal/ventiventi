@@ -50,6 +50,8 @@ NESW = [
      9
 '''
 
+CARDINAL4 = ['F', 'R', 'B', 'L']
+
 COMPASS4 = [
     0,
     'F', 'F',
@@ -171,7 +173,12 @@ HANG = [
     'key',
     'pouch',
     'shield',
+    'sheath',
     'scabbard']
+
+SHEATH = [
+    'scabbard',
+    'sheath']
 
 HUMAN = [
     'adv',
@@ -180,6 +187,7 @@ HUMAN = [
     'guard1',
     'smith',
     'alchemist',
+    'cobbler',
     'mayor']
 
 DWARF = [
@@ -309,7 +317,7 @@ BAG = [
     'scabbard',
     'sheath']
 
-TOO_HEAVY = ANIMATE + FURNITURE
+CANTPICK = ANIMATE + FURNITURE + ['inscription']
 
 CURVED_WEAPON = [
     'scimitar']
@@ -321,12 +329,14 @@ LENGTH = {
     'table': 100,
     'hook': 5,
     'bell': 5,
+    'inscription': 10,
     'adv': 170,
     'shopkeeper': 170,
     'guard': 170,
     'guard1': 170,
     'mayor': 170,
     'smith': 170,
+    'cobbler': 170,
     'alchemist': 170,
     'goblin': 100,
     'dwarf': 100,
@@ -352,12 +362,14 @@ THICK = {
     'table': 60,
     'hook': 5,
     'bell': 5,
+    'inscription': 1,
     'adv': 20,
     'shopkeeper': 20,
     'guard': 20,
     'guard1': 20,
     'mayor': 20,
     'smith': 20,
+    'cobbler': 20,
     'alchemist': 20,
     'goblin': 15,
     'dwarf': 20,
@@ -383,12 +395,14 @@ WIDTH = {
     'table': 60,
     'hook': 1,
     'bell': 5,
+    'inscription': 10,
     'adv': 60,
     'shopkeeper': 60,
     'guard': 60,
     'guard1': 60,
     'mayor': 60,
     'smith': 60,
+    'cobbler': 60,
     'alchemist': 60,
     'goblin': 30,
     'dwarf': 40,
@@ -410,6 +424,12 @@ WIDTH = {
 SMALL = [
     'gold']
 
+def Coins(value):
+    co = value // 100
+    if value % 100 > 0:
+        co += 1
+    return co
+
 GLYPH = {
     'door': '+',
     'gate': '|+|',
@@ -417,6 +437,7 @@ GLYPH = {
     'table': '==',
     'hook': '?',
     'bell': ':',
+    'inscription': '...',
     'sword': '/',
     'scimitar': '/',
     'hammer': '/',
@@ -434,6 +455,7 @@ GLYPH = {
     'adv': '@',
     'mayor': '@',
     'smith': '@',
+    'cobbler': '@',
     'alchemist': '@',
     'goblin': 'g',
     'gnome': 'gn',
@@ -795,7 +817,9 @@ class Item:
         self, tipo, x, y, room, name=None, names=None, material=None,
         dodge_sk=10, fight_sk=10,
         facing='N',
-        eqstyle = None, flask=None, lock=None, key_to=None, bag=False, owner=None, shk=False):
+        eqstyle = None,
+        flask=None, lock=None, key_to=None, bag=False, ins=None,
+        owner=None, shk=False):
 
         self.tipo=tipo
         if tipo in WEAPON:
@@ -968,6 +992,7 @@ class Item:
             self.locked = False
         if key_to:
             self.key_to = key_to
+        self.ins = ins
         if tipo in FURNITURE:
             self.finvt = []  ##Furniture inv "on the top"
 
@@ -2095,6 +2120,21 @@ def CSmL(o):
             list1.append(ao)
     return list1
 
+def CanHold(it, bag):
+    can = False
+    if (
+        it.length*2//3 < bag.length
+        and it.thick <= bag.thick-2
+        and it.width <= bag.width-2):
+        
+        can = True
+        if it.tipo in WEAPON and bag.tipo in SHEATH:
+            for ib in bag.bag:
+                if ib.tipo in WEAPON:
+                    can = False
+
+    return can
+
 def LooseItems(exclude_f=True):  ##exclude_f: exclude items on/in furniture
     '''Items not in someone's inv and not in bag and visible'''
     items = CanSeeList(at)
@@ -2120,7 +2160,7 @@ def Use():
     ##Write the choices
     for item in LooseItems(exclude_f=False):        
         if item != at and Distance(at, item) == 0:
-            if item.tipo not in TOO_HEAVY:
+            if item.tipo not in CANTPICK:
                 ##Pick up
                 text = 'pick up ' + NameSco(item)
                 for o in at.order:
@@ -2213,7 +2253,7 @@ def Use():
                                 ordered = True
                                 break
                         if not ordered:
-                            estmtxt = 'about ' + str(PRICE[item.tipo]//100) + ' gold    '
+                            estmtxt = 'about ' + str(Coins(PRICE[item.tipo])) + ' gold    '
                             selec.append([estmtxt + NameSco(item), item])
                     if selec:
                         chosen = Menu('ask the price of', selec, refresh=False)
@@ -2666,10 +2706,10 @@ def Inv():
                             chosen2 = Menu('?', select2)
                             if chosen2:
                                 bag = chosen2
-                                if item.length*2//3 < bag.length and item.thick <= bag.thick-2 and item.width <= bag.width-2:
+                                if CanHold(item, bag):
                                     at.TakeOff(item)  ##Free up the hand that holds the armor
                                     bag.bag.append(item)
-                                    if item.tipo in WEAPON and bag.tipo in ['scabbard', 'sheath']:
+                                    if item.tipo in WEAPON and bag.tipo in SHEATH:
                                         Message(at.name + ' sheathes ' + item.Name())
                                     else:
                                         Message(at.name + ' puts ' + item.Name() + ' into ' + bag.name)
@@ -2787,20 +2827,16 @@ def Wield():
                     break
     else:
         for w in at.wear:
-            if (
-                w.tipo in ['scabbard', 'sheath']
-                and armed.length*2//3 < w.length
-                and armed.thick <= w.thick-2
-                and armed.width <= w.width-2):
-                
+            if CanHold(armed, w):
                 at.TakeOff(armed)
                 w.bag.append(armed)
                 Message(at.Name() + ' sheathes ' + armed.Name())
+                break
 
 def Shop():
     selec = []
     for o in at.order:
-        selec.append([o.buyer.name + ' : ' + str(o.price//100) + ' gold : ' + o.seller.name + ' : ' + o.good.Name() + ' ' + o.status, o])
+        selec.append([o.buyer.name + ' : ' + str(Coins(o.price)) + ' gold : ' + o.seller.name + ' : ' + o.good.Name() + ' ' + o.status, o])
     if selec:
         chosen = Menu('orders', selec, refresh=False)
         if chosen is not None:
@@ -2838,11 +2874,13 @@ def PartN(part, long_form=True):
 
 def NameSco(i):
     n = i.Name()
-    if i.tipo in ['scabbard', 'sheath']:
+    if i.tipo in SHEATH:
         for ibg in i.bag:
             if ibg.tipo in WEAPON:
                 n += ' |hilt'
                 break
+    elif i.tipo in DOOR:
+        n = DoorPlate(i, True)
     return n
 
 def Scope(target, selfscope=False):
@@ -2862,7 +2900,10 @@ def Scope(target, selfscope=False):
     tcod.console_clear(panel)
     if target is not None:
         ##Name
-        text = NameSco(target)
+        if target.tipo in DOOR:
+            text = target.tipo
+        else:
+            text = NameSco(target)
         if target.display_move:
             text += '    ' + target.dismovg
             target.display_move = False
@@ -2942,12 +2983,16 @@ def Scope(target, selfscope=False):
         elif target.tipo in DOOR:
             p, q = SCOCEN
             text = DoorPlate(target)
-            if text:
-                text = '< ' + text + ' >\n'
             if target.lock:
                 text += target.lock
             tcod.console_print_ex(
                 panel, p, q,
+                tcod.BKGND_NONE, tcod.LEFT,
+                text)
+        elif target.tipo == 'inscription':
+            text = target.ins
+            tcod.console_print_ex(
+                panel, 5, H//3,
                 tcod.BKGND_NONE, tcod.LEFT,
                 text)
         elif hasattr(target, 'finvt') and target.finvt:
@@ -3169,7 +3214,7 @@ def GetCommand(DICT):
             key = 9
     return DICT[key]
 
-def DoorPlate(door):
+def DoorPlate(door, plain=False):
     if door.room != at.room:
         text = door.names[at.room]
     else:
@@ -3178,18 +3223,18 @@ def DoorPlate(door):
             text = n0
         else:
             text = n1
+    if text:
+        text = '{ ' + text + ' }'
+    else:
+        if plain:
+            text = door.tipo
     return text
 
-def Descr(item):
+def Glyph(item):
 ##Only used in FourViews()
-    space = '    '
+    glyph = ''
     if isinstance(item, Item):
         if item.tipo in DOOR:
-            text = DoorPlate(item)
-            if text:
-                text = item.tipo + ' ' + text
-            else:
-                text = item.tipo
             if item.room.bmap[0][0] == 3:
                 glyph = '|+|'
             else:
@@ -3199,32 +3244,29 @@ def Descr(item):
                     glyph += 'L'
                 else:
                     glyph += 'l'
-            text = glyph + space + text
         elif hasattr(item, 'finvt'):
-            text = GLYPH[item.tipo]
+            glyph = GLYPH[item.tipo]
             for item1 in item.finvt:
                 if item1.tipo == 'gold' and '$' in text:
                     pass
                 else:
-                    text += GLYPH[item1.tipo]
-            text += space + item.Name()
+                    glyph += GLYPH[item1.tipo]
         else:
-            text = GLYPH[item.tipo]
+            glyph = GLYPH[item.tipo]
             if hasattr(item, 'wield'):
                 for weapon in item.wield:
                     if weapon is not None:
                         if isinstance(weapon, list):
                             weapon = weapon[0]
-                        text += GLYPH[weapon.tipo]
-            if item.tipo in ['scabbard', 'sheath']:
+                        glyph += GLYPH[weapon.tipo]
+            if item.tipo in SHEATH:
                 for ibg in item.bag:
                     if ibg.tipo in WEAPON:
-                        text += '*'
+                        glyph += '*'
                         break
-            text += space + item.Name()
     elif isinstance(item, AOE):
-        text = '~ ~ ~' + space + 'mist of ' + CHEMN[item.chem]
-    return text
+        glyph = '~ ~ ~'
+    return glyph
 
 def WMap():
     text = ''
@@ -3436,27 +3478,102 @@ def FourViews():
     for i in sorted(site_distance_dict.items(), key=lambda item: item[1]):
         direction_site_dict[Direction(at, i[0])].append(i[0])
     ##Print the four views
-    for x, y, d in SUB_V:
-        texti = ''
+    p, q = (FOUR_VIEWS_PNL_WD//2, FOUR_VIEWS_PNL_HT//2)
+    marg = FOUR_VIEWS_PNL_HT // 8
+    for d in CARDINAL4:
+        if len(direction_item_dict) > FOUR_VIEWS_PNL_HT // 3:
+            marg = FOUR_VIEWS_PNL_HT // 10
+            break
+    for d in CARDINAL4:
+        y = q
+        ##Items
         for i in direction_item_dict[d]:
-            d1 = Direction(at, i, dn=16)
-            distance = item_distance_dict[i]
-            space_n = distance//10
-            if space_n >= FOUR_VIEWS_PNL_WD // 6:
-                space_n = FOUR_VIEWS_PNL_WD // 6
-            space = ' ' * space_n
-            distance_text = str(distance) + 'm'
-            if i.tipo in DOOR and distance == 1:
-                distance_text = '///'
-            texti += space + Descr(i) + ' ' + distance_text + DIAG_GLYPH[d1]
+            dis = item_distance_dict[i]
+            if i.tipo in DOOR and dis == 1:
+                distx = '///'
+            else:
+                distx = str(dis) + 'm'
+            dirgl = DIAG_GLYPH[Direction(at, i, dn=16)]
+            distx += dirgl
+
+            xmarg = dis // 10
+            xmarg += marg
+            if xmarg >= FOUR_VIEWS_PNL_WD // 4:
+                xmarg = FOUR_VIEWS_PNL_WD // 4
+
+            if i.tipo in DOOR:
+                nm = DoorPlate(i, True)
+            else:
+                nm = i.Name()
+            gl = Glyph(i)
+            if dis <= 1:
+                sp = ' ' * 2
+            else:
+                sp = ' ' * 8
             if i.tipo in ANIMATE:
-                texti += ' ' + STANCE_GLYPH[i.stance]
-            texti += '\n\n'
+                st = STANCE_GLYPH[i.stance]
+            else:
+                st = ''            
+
+            if d == 'F':
+                tx = st + ' ' + distx + '  ' + nm + sp + gl
+                tcod.console_print_ex(
+                    four_views_pnl, p-len(tx)-xmarg, y-marg,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    tx)
+                y -= 2
+            elif d == 'R':
+                tx = gl + sp + nm + '  ' + distx + ' ' + st
+                tcod.console_print_ex(
+                    four_views_pnl, p+xmarg, y-marg,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    tx)
+                y -= 2
+            elif d == 'B':
+                tx = gl + sp + nm + '  ' + distx + ' ' + st
+                tcod.console_print_ex(
+                    four_views_pnl, p+xmarg, y+marg,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    tx)
+                y += 2
+            else:
+                tx = st + ' ' + distx + '  ' + nm + sp + gl
+                tcod.console_print_ex(
+                    four_views_pnl, p-len(tx)-xmarg, y+marg,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    tx)
+                y += 2
         ## Distant landmarks
         if not at.room.ceiling and direction_site_dict[d]:
-            texti += '\n\n\n\n'
+            xmarg = FOUR_VIEWS_PNL_WD // 6 + 8
+            ymarg = marg + 4
             for i in direction_site_dict[d]:
-                texti += '        ' + i.name + ' _^\n\n'
+                tx = i.name
+                if d == 'F':
+                    tcod.console_print_ex(
+                        four_views_pnl, p-len(tx)-xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        '^_  '+tx)
+                    y -= 2
+                elif d == 'R':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        tx+'  _^')
+                    y -= 2
+                elif d == 'B':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        tx+'  _^')
+                    y += 2
+                else:
+                    tcod.console_print_ex(
+                        four_views_pnl, p-len(tx)-xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        '^_  '+tx)
+                    y += 2
+        ##Wall
         textw = ''
         to = FRBLtoNESW(at.facing, d)
         dfw = DFW(at, to)
@@ -3498,37 +3615,27 @@ def FourViews():
                 textw += wall + '\n'
                 if dfw > 1:
                     textw += str(dfw) + 'm\n'
-        if d in ['F', 'R']:
-            if d == 'F':
-                text = textw + '\n\n' + texti
-                tcod.console_print_ex(
-                    four_views_pnl, x, y,
-                    tcod.BKGND_NONE, tcod.LEFT,
-                    text)
-            else:
-                tcod.console_print_ex(
-                    four_views_pnl, x+FOUR_VIEWS_PNL_WD//2-3, y,
-                    tcod.BKGND_NONE, tcod.RIGHT,
-                    textw)
-                tcod.console_print_ex(
-                    four_views_pnl, x, y+5,
-                    tcod.BKGND_NONE, tcod.LEFT,
-                    texti)
-        else:
+        if d == 'F':
             tcod.console_print_ex(
-                four_views_pnl, x, y,
+                four_views_pnl, 1, 0,
                 tcod.BKGND_NONE, tcod.LEFT,
-                texti)
-            if d == 'L':
-                tcod.console_print_ex(
-                    four_views_pnl, x, FOUR_VIEWS_PNL_HT-6,
-                    tcod.BKGND_NONE, tcod.LEFT,
-                    textw)
-            else:
-                tcod.console_print_ex(
-                    four_views_pnl, x+FOUR_VIEWS_PNL_WD//2-3, FOUR_VIEWS_PNL_HT-6,
-                    tcod.BKGND_NONE, tcod.RIGHT,
-                    textw)
+                textw)
+        elif d == 'R':
+            tcod.console_print_ex(
+                four_views_pnl, FOUR_VIEWS_PNL_WD-3, 0,
+                tcod.BKGND_NONE, tcod.RIGHT,
+                textw)
+        elif d == 'L':
+            tcod.console_print_ex(
+                four_views_pnl, 1, FOUR_VIEWS_PNL_HT-6,
+                tcod.BKGND_NONE, tcod.LEFT,
+                textw)
+        elif d == 'B':
+            tcod.console_print_ex(
+                four_views_pnl, FOUR_VIEWS_PNL_WD-3, FOUR_VIEWS_PNL_HT-6,
+                tcod.BKGND_NONE, tcod.RIGHT,
+                textw)
+        
     tcod.console_blit(
         four_views_pnl, 0, 0,
         FOUR_VIEWS_PNL_WD, FOUR_VIEWS_PNL_HT, 0,
@@ -3805,226 +3912,6 @@ def Debug():
         DEBUG_PNL_LF, DEBUG_PNL_TP)
     tcod.console_flush()
 
-TOWN_SIZE = [50, 50]
-WORLD_SIZE = 1000
-ROOM_SIZE = [10, 20]
-BASICSHOP = [
-    'mayor']
-RANDOMSHOP = [
-    'alchemist',
-    'smith',
-    'gnome']
-
-SHOPDOOR = {
-    'mayor': 'MAYOR\'S OFFICE',
-    'alchemist': 'ALCHEMIST\'S SHOP',
-    'smith': 'SMITH\'S SHOP',
-    'gnome': ''}
-
-
-##     0
-##    3 1
-##     2
-
-SIDE_COMPASS = ['N', 'E', 'S', 'W']
-
-def ReverseSide(side):
-    side1 = side + 2
-    if side1 > 3:
-        side1 -= 4
-    return side1
-
-def Siding(side, width, length, middle=False, drift=False, edgible=True):
-    '''Used in MakeTown()'''
-    rx = random.randint(1, width -2)
-    ry = random.randint(1, length -2)
-    xmax = width - 1
-    ymax = length - 1
-    xmd = width // 2
-    ymd = length // 2
-    xdr = random.randint(0, xmd-1)
-    ydr = random.randint(0, ymd-1)
-    if middle:
-        if side == 0:
-            x = xmd
-            y = ymax
-        elif side == 1:
-            x = xmax
-            y = ymd
-        elif side == 2:
-            x = xmd
-            y = 0
-        elif side == 3:
-            x = 0
-            y = ymd
-    else:
-        if side == 0:
-            x = rx
-            y = ymax
-            if drift:
-                y -= ydr
-        elif side == 1:
-            x = xmax
-            if drift:
-                x -= xdr
-            y = ry
-        elif side == 2:
-            x = rx
-            y = 0
-            if drift:
-                y += ydr
-        elif side == 3:
-            x = 0
-            if drift:
-                x += xdr
-            y = ry
-    if not edgible:
-        if  x <= 0:
-            x = 1
-        elif x >= width - 1:
-            x = width - 2
-        if y <= 0:
-            y = 1
-        elif y >= width - 1:
-            y = width - 2
-    return (x, y)
-
-def NxDoor(portal, room, pair=False):
-    '''The (x, y) of a furniture placed in room next to portal'''
-    pos = None
-    if portal in room.portal:
-        x, y = room.portal[portal]
-        u, v = portal.vectors[room]
-        if u == 0:
-            p = [(x-1, y+v), (x+1, y+v)]
-        elif v == 0:
-            p = [(x+u, y-1), (x+u, y+1)]
-        p2 = []
-        for p1 in p:
-            m, n = p1
-            if room.bmap[m][n] == 0:
-                p2.append(p1)
-        if pair:
-            pos = (p2[0][0], p2[0][1], p2[1][0], p2[1][1])
-        else:
-            pos = random.choice(p2)
-    return pos
-
-CITYGATEXY = [(200, 299), (299, 200), (200, 100), (100, 200)]
-    
-def MakeTown(roomnum=3):
-    town = Site(1, 1, 'Town', natfl='GRAVEL')
-    field = town.room_list[0]
-    short, long = TOWN_SIZE
-    townsq = Room(short, long, town, ceiling=False)  ##Town square
-    side = random.randint(0, 3)
-    for n in random.choice(TWINNAMES):
-        xgb, ygb = Siding(side, townsq.x, townsq.y, drift=True, edgible=False)
-        gb = Item('goblin', xgb, ygb, townsq, facing=random.choice(NESW), name=n)
-        town.goblin.append(gb)
-    count = 0
-    while True:
-        count += 1 
-        xog, yog = Siding(ReverseSide(side), field.x, field.y, drift=True, edgible=False)
-        if field.bmap[xog][yog] == 0 or count > 500:
-            break
-    ogre = Item('ogre', 99, 60, field, facing=random.choice(NESW))
-    ogre.task.append(Task('ambush', 30))
-    x0, y0 = Siding(side, townsq.x, townsq.y, middle=True)
-    x1, y1 = CITYGATEXY[side]
-    gate = Door(townsq, x0, y0, field, x1, y1, doortype='gate', closed=False, name1='CITY OF ZIUMNI', flomat='STONE FLOOR')
-    fa = SIDE_COMPASS[side]
-    g0x, g0y, g1x, g1y = NxDoor(gate, field, pair=True)
-    g0 = Item('guard', g0x, g0y, field, facing=fa)
-    g1 = Item('guard1', g1x, g1y, field, facing=fa)
-    town.guard += [g0, g1]
-    town.citizen += [g0, g1]
-    shops = BASICSHOP + RANDOMSHOP
-    for sh in shops:
-        side = random.randint(0, 3)
-        side1 = ReverseSide(side)
-        ##Make no two doors on town square are too close to each other
-        counter = 0
-        while True:
-            x0, y0 = Siding(side, townsq.x, townsq.y)
-            too_close = False
-            for coordinate in townsq.portal.values():
-                p, q = coordinate
-                if max(abs(x0-p), abs(y0-q)) <= 5:
-                    too_close = True
-            if not too_close:
-                break
-            counter += 1
-            if counter >= 100:
-                break
-        ##Dig the room
-        short, long = ROOM_SIZE
-        room = Room(short, long, town, name=sh, flomat='STONE FLOOR')
-        ##Dig the door
-        x1, y1 = Siding(side1, room.x, room.y)
-        if sh == 'gnome':
-            lock = 'rusty lock'
-        else:
-            lock = None
-        if sh in ['smith', 'alchemist']:
-            closed = False
-        else:
-            closed = True
-        door = Door(room, x1, y1, townsq, x0, y0, name1=SHOPDOOR[sh], closed=closed, lock=lock, flomat='STONE FLOOR')
-        if sh == 'gnome':
-            mn = NxDoor(door, townsq)
-            if mn:
-                m, n = mn
-                ho = Item('hook', m, n, townsq, name='hook')
-            ho.finvt.append(Item('key', ho.x, ho.y, ho.room, name='crooked key', key_to=door))
-        ##Furnish
-        x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
-        if sh != 'gnome':
-            table = Item('table', x, y, room, name='table')
-            if sh == 'smith':
-                for i in range(random.randint(3, 5)):
-                    wptype = random.choice(WEAPON)
-                    wp = Item(wptype, table.x, table.y, table.room)
-                    table.finvt.append(wp)
-                for i in range(random.randint(3, 5)):
-                    sdtype = random.choice(SHIELD)
-                    sd = Item(sdtype, table.x, table.y, table.room)
-                    table.finvt.append(sd)
-            elif sh == 'alchemist':
-                for i in range(6):
-                    pt = Item('potion', table.x, table.y, table.room, flask={random.choice(CHEM): 1000})
-                    table.finvt.append(pt)
-            elif sh == 'mayor':
-                x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
-                be = Item('bell', x, y, room, name='bell')
-        else:
-            for i in range(10):
-                x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
-                Item('gold', x, y, room, name='gold coin')
-        ##Occupants
-        x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
-        fa = SIDE_COMPASS[side1]
-        if sh == 'mayor':
-            my = Item('mayor', x, y, room, facing=fa)
-            town.mayor = my
-        elif sh == 'smith':
-            occ = Item('smith', x, y, room, facing=fa, shk=room)
-            occ.stock = copy.copy(table.finvt)
-            for st in occ.stock:
-                st.owner = occ
-        elif sh == 'alchemist':
-            occ = Item('alchemist', x, y, room, facing=fa, shk=room)
-            occ.stock = copy.copy(table.finvt)
-            for st in occ.stock:
-                st.owner = occ
-        elif sh == 'gnome':
-            occ = Item('gnome', x, y, room, facing=fa)
-            pt = Item('potion', occ.x, occ.y, occ.room, flask={'lead': 1000})
-            occ.wield[1] = pt
-            occ.inv.append(pt)
-
-    return town
-
 def Help():
     text = '''
 KEY BINDING
@@ -4163,6 +4050,277 @@ def Intro():
                 SCREEN_WD, SCREEN_HT, 0,
                 0, 0)
             tcod.console_flush()
+
+TOWN_SIZE = [50, 50]
+WORLD_SIZE = 1000
+ROOM_SIZE = [10, 20]
+BASICSHOP = [
+    'mayor']
+RANDOMSHOP = [
+    'alchemist',
+    'smith',
+    'cobbler',
+    'gnome']
+
+SHOPDOOR = {
+    'mayor': 'MAYOR\'S OFFICE',
+    'alchemist': 'ALCHEMIST\'S SHOP',
+    'smith': 'SMITH\'S SHOP',
+    'cobbler': 'COBBLER\'S SHOP',
+    'gnome': ''}
+
+
+##     0
+##    3 1
+##     2
+
+SIDE_COMPASS = ['N', 'E', 'S', 'W']
+
+def ReverseSide(side):
+    side1 = side + 2
+    if side1 > 3:
+        side1 -= 4
+    return side1
+
+def Siding(side, width, length, middle=False, drift=False, edgible=True):
+    '''Used in MakeTown()'''
+    rx = random.randint(1, width -2)
+    ry = random.randint(1, length -2)
+    xmax = width - 1
+    ymax = length - 1
+    xmd = width // 2
+    ymd = length // 2
+    xdr = random.randint(0, xmd-1)
+    ydr = random.randint(0, ymd-1)
+    if middle:
+        if side == 0:
+            x = xmd
+            y = ymax
+        elif side == 1:
+            x = xmax
+            y = ymd
+        elif side == 2:
+            x = xmd
+            y = 0
+        elif side == 3:
+            x = 0
+            y = ymd
+    else:
+        if side == 0:
+            x = rx
+            y = ymax
+            if drift:
+                y -= ydr
+        elif side == 1:
+            x = xmax
+            if drift:
+                x -= xdr
+            y = ry
+        elif side == 2:
+            x = rx
+            y = 0
+            if drift:
+                y += ydr
+        elif side == 3:
+            x = 0
+            if drift:
+                x += xdr
+            y = ry
+    if not edgible:
+        if  x <= 0:
+            x = 1
+        elif x >= width - 1:
+            x = width - 2
+        if y <= 0:
+            y = 1
+        elif y >= width - 1:
+            y = width - 2
+    return (x, y)
+
+def NxDoor(portal, room, pair=False):
+    '''The (x, y) of a furniture placed in room next to portal'''
+    pos = None
+    if portal in room.portal:
+        x, y = room.portal[portal]
+        u, v = portal.vectors[room]
+        if u == 0:
+            p = [(x-1, y+v), (x+1, y+v)]
+        elif v == 0:
+            p = [(x+u, y-1), (x+u, y+1)]
+        p2 = []
+        for p1 in p:
+            m, n = p1
+            if room.bmap[m][n] == 0:
+                p2.append(p1)
+        if pair:
+            pos = (p2[0][0], p2[0][1], p2[1][0], p2[1][1])
+        else:
+            pos = random.choice(p2)
+    return pos
+
+CITYGATEXY = [(200, 299), (299, 200), (200, 100), (100, 200)]
+
+INS = {
+    'ogre': [['OGRE', 'MAN', 'GIANT'], ['OFWILD', 'OFMOUNTAIN']]}
+
+INSPIC = {
+    'ogre': ['broad humanoid', 'muscular humanoid', 'menacing humanoid']}
+
+def Ins(motif):
+    lst = INS[motif]
+    ins = ''
+    text = ''
+    for pt in lst:
+        text += random.choice(pt)
+    lst1 = list(text)
+    for letter in lst1:
+        ins += letter + ' '
+    ins += '\n\n'
+    ins += '[picture of ' + random.choice(INSPIC[motif]) + ']'
+
+    return ins
+    
+def MakeTown(roomnum=3):
+    town = Site(2, 2, 'Town', natfl='GRAVEL')
+    field = town.room_list[0]
+    short, long = TOWN_SIZE
+    townsq = Room(short, long, town, ceiling=False)  ##Town square
+    side = random.randint(0, 3)
+    for n in random.choice(TWINNAMES):
+        xgb, ygb = Siding(side, townsq.x, townsq.y, drift=True, edgible=False)
+        gb = Item('goblin', xgb, ygb, townsq, facing=random.choice(NESW), name=n)
+        town.goblin.append(gb)
+    x0, y0 = Siding(side, townsq.x, townsq.y, middle=True)
+    x1, y1 = CITYGATEXY[side]
+    gate = Door(townsq, x0, y0, field, x1, y1, doortype='gate', closed=False, name1='CITY OF ZIUMNI', flomat='STONE FLOOR')
+    fa = SIDE_COMPASS[side]
+    g0x, g0y, g1x, g1y = NxDoor(gate, field, pair=True)
+    g0 = Item('guard', g0x, g0y, field, facing=fa)
+    g1 = Item('guard1', g1x, g1y, field, facing=fa)
+    town.guard += [g0, g1]
+    town.citizen += [g0, g1]
+    shops = BASICSHOP + RANDOMSHOP
+    for sh in shops:
+        side = random.randint(0, 3)
+        side1 = ReverseSide(side)
+        ##Make no two doors on town square are too close to each other
+        counter = 0
+        while True:
+            x0, y0 = Siding(side, townsq.x, townsq.y)
+            too_close = False
+            for coordinate in townsq.portal.values():
+                p, q = coordinate
+                if max(abs(x0-p), abs(y0-q)) <= 5:
+                    too_close = True
+            if not too_close:
+                break
+            counter += 1
+            if counter >= 100:
+                break
+        ##Dig the room
+        short, long = ROOM_SIZE
+        room = Room(short, long, town, name=sh, flomat='STONE FLOOR')
+        ##Dig the door
+        x1, y1 = Siding(side1, room.x, room.y)
+        if sh == 'gnome':
+            lock = 'rusty lock'
+        else:
+            lock = None
+        if sh in ['smith', 'alchemist', 'cobbler']:
+            closed = False
+        else:
+            closed = True
+        door = Door(room, x1, y1, townsq, x0, y0, name1=SHOPDOOR[sh], closed=closed, lock=lock, flomat='STONE FLOOR')
+        if sh == 'gnome':
+            mn = NxDoor(door, townsq)
+            if mn:
+                m, n = mn
+                ho = Item('hook', m, n, townsq, name='hook')
+            ho.finvt.append(Item('key', ho.x, ho.y, ho.room, name='crooked key', key_to=door))
+        ##Furnish
+        x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
+        if sh != 'gnome':
+            table = Item('table', x, y, room, name='table')
+            if sh == 'smith':
+                for i in range(random.randint(3, 5)):
+                    wptype = random.choice(WEAPON)
+                    wp = Item(wptype, table.x, table.y, table.room)
+                    table.finvt.append(wp)
+                for i in range(random.randint(3, 5)):
+                    sdtype = random.choice(SHIELD)
+                    sd = Item(sdtype, table.x, table.y, table.room)
+                    table.finvt.append(sd)
+            elif sh == 'alchemist':
+                for i in range(random.randint(6, 8)):
+                    pt = Item('potion', table.x, table.y, table.room, flask={random.choice(CHEM): 1000})
+                    table.finvt.append(pt)
+            elif sh == 'cobbler':
+                for i in range(random.randint(6, 8)):
+                    letype = random.choice(SHEATH)
+                    le = Item(letype, table.x, table.y, table.room)
+                    table.finvt.append(le)
+            elif sh == 'mayor':
+                x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
+                be = Item('bell', x, y, room, name='bell')
+        else:
+            for i in range(10):
+                x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
+                Item('gold', x, y, room, name='gold coin')
+        ##Occupants
+        x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
+        fa = SIDE_COMPASS[side1]
+        if sh == 'mayor':
+            my = Item('mayor', x, y, room, facing=fa)
+            town.mayor = my
+        elif sh == 'smith':
+            occ = Item('smith', x, y, room, facing=fa, shk=room)
+            occ.stock = copy.copy(table.finvt)
+            for st in occ.stock:
+                st.owner = occ
+        elif sh == 'alchemist':
+            occ = Item('alchemist', x, y, room, facing=fa, shk=room)
+            occ.stock = copy.copy(table.finvt)
+            for st in occ.stock:
+                st.owner = occ
+        elif sh == 'cobbler':
+            occ = Item('cobbler', x, y, room, facing=fa, shk=room)
+            occ.stock = copy.copy(table.finvt)
+            for st in occ.stock:
+                st.owner = occ
+        elif sh == 'gnome':
+            occ = Item('gnome', x, y, room, facing=fa)
+            pt = Item('potion', occ.x, occ.y, occ.room, flask={'lead': 1000})
+            occ.wield[1] = pt
+            occ.inv.append(pt)
+
+    side = random.randint(0, 3)
+    count = 0
+    while True:
+        count += 1
+        insx, insy = Siding(side, townsq.x, townsq.y)
+        if townsq.bmap[insx][insy] == 1:
+            break
+        if count > 100:
+            break
+    Item('inscription', insx, insy, townsq, ins=Ins('ogre'))
+
+    return town
+
+def MakeCave():
+    mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW')
+    field = mountain.room_list[0]
+    cave = Room(30, 30, mountain)
+    side = random.randint(0, 3)
+    x0, y0 = Siding(side, cave.x, cave.y, middle=True)
+    x1, y1 = CITYGATEXY[side]
+    caveentry = Door(cave, x0, y0, field, x1, y1, closed=False, flomat='STONE FLOOR')
+    fa = SIDE_COMPASS[side]
+    xog, yog = Siding(ReverseSide(side), cave.x, cave.y, drift=True, edgible=False)
+    ogre = Item('ogre', xog, yog, cave, facing=fa)
+    ogre.task.append(Task('ambush', 30))
+
+    return mountain
+
 Intro()
 
 #Initialize
@@ -4174,7 +4332,7 @@ moonph = random.randint(0, 3)
 worldmap = []
 town = MakeTown()
 ##tower = Site(100, 98, 'Tower')
-mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW')
+mountain = MakeCave()
 
 CITYPLACE = (15, 24, 15, 18)
 wmapsite = {}
@@ -4197,14 +4355,17 @@ for st in worldmap:
 for r in town.room_list:
     if r.name == 'mayor':
         r_at = r
-at = Item('adv', 90, 90, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
-##for i in range(3):
+atx = random.randint(70, 90)
+aty = random.randint(70, 90)
+at = Item('adv', atx, aty, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
+##for i in range(10):
 ##    Item('gold', at.x, at.y, at.room, name='gold coin')
 at.skill['fight'] = 1
 at.skill['dodge'] = 1
 
-for room in town.room_list:
-    cur_item_list += room.item_list
+for st in worldmap:
+    for room in st.room_list:
+        cur_item_list += room.item_list
 
 scope = None
 autoscope = None
@@ -4272,7 +4433,7 @@ while not tcod.console_is_window_closed():
                             taskf.append(ts)
                 elif name == 'haggle':
                     price1, seller, good = detail
-                    text = str(price1//100) + ' gold?'
+                    text = str(Coins(price1)) + ' gold?'
                     if at.Say(text, True):
                         seller.task.append(Task('agree on price s', [price1, seller, good]))
                         taskf.append(ts)
@@ -4302,6 +4463,8 @@ while not tcod.console_is_window_closed():
                 MESSAGE_PNL_WD, MESSAGE_PNL_HT, 0,
                 MESSAGE_PNL_LF, MESSAGE_PNL_TP)
             tcod.console_flush()
+        elif command == 'MAP':
+            WMap()
         elif at.anim:
             if command in FRBL or command.startswith('t'):
                 if command.startswith('t'):
@@ -4333,8 +4496,6 @@ while not tcod.console_is_window_closed():
                 Pouch()
             elif command == 'WIELD':
                 Wield()
-            elif command == 'MAP':
-                WMap()
     for item in cur_item_list:
         if item.anim:
             if item != at:
@@ -4534,7 +4695,7 @@ while not tcod.console_is_window_closed():
                                 price -= 100
                                 if price < 100:
                                     price = 100
-                            text = str(price//100)+' gold'
+                            text = str(Coins(price))+' gold'
                             if item.Say(text, prompt=True, pr=False):
                                 selec = [['agree on price', 'a']]
                                 price1 = price * 6 // 10
@@ -4651,16 +4812,12 @@ while not tcod.console_is_window_closed():
                                             break
                                 elif weapon and item.time > 0 and not item.attack and not item.watch:
                                     for w in item.wear:
-                                        if (
-                                            w.tipo in ['scabbard', 'sheath']
-                                            and weapon.length*2//3 < w.length
-                                            and weapon.thick <= w.thick-2
-                                            and weapon.width <= w.width-2):
-                                            
+                                        if CanHold(weapon, w):
                                             item.TakeOff(weapon)
                                             w.bag.append(weapon)
                                             if CanSee(at, item):
                                                 Message(item.Name() + ' sheathes ' + weapon.Name())
+                                            break
                         elif name == 'mayor speech':
                             if random.randint(0, 999)==0 and random.randint(0, 99)==0:
                                 item.Say(random.choice(MAYORSPEECH))
