@@ -3477,7 +3477,15 @@ def Sky():
         floor_pnl, 0, 0,
         FLOOR_WD, FLOOR_HT, 0,
         FLOOR_LF, FLOOR_TP)
-    tcod.console_flush()        
+    tcod.console_flush()
+
+def XMa(dis):
+    '''Only used in FourViews()'''
+    if dis <= 5:
+        marg = dis
+    else:
+        marg = dis//10 + 6
+    return marg
 
 def FourViews():
     global scope, autoscope
@@ -3517,13 +3525,17 @@ def FourViews():
         direction_site_dict[Direction(at, i[0])].append(i[0])
     ##Print the four views
     p, q = (FOUR_VIEWS_PNL_WD//2, FOUR_VIEWS_PNL_HT//2)
-    marg = FOUR_VIEWS_PNL_HT // 8
+    pxmarg = max(1, FOUR_VIEWS_PNL_WD // 40)
+    pymarg = max(1, FOUR_VIEWS_PNL_HT // 20)
+    ystep = 3
     for d in CARDINAL4:
         if len(direction_item_dict) > FOUR_VIEWS_PNL_HT // 3:
-            marg = FOUR_VIEWS_PNL_HT // 10
+            pymarg = max(1, FOUR_VIEWS_PNL_HT // 40)
+            ystep = 2
             break
     for d in CARDINAL4:
         y = q
+        y1 = q
         ##Items
         for i in direction_item_dict[d]:
             dis = item_distance_dict[i]
@@ -3534,10 +3546,11 @@ def FourViews():
             dirgl = DIAG_GLYPH[Direction(at, i, dn=16)]
             distx += dirgl
 
-            xmarg = dis // 10
-            xmarg += marg
+            xmarg = XMa(dis)
+            xmarg += pxmarg
             if xmarg >= FOUR_VIEWS_PNL_WD // 4:
                 xmarg = FOUR_VIEWS_PNL_WD // 4
+            ymarg = pymarg
 
             if i.tipo in DOOR:
                 nm = DoorPlate(i, True)
@@ -3556,35 +3569,41 @@ def FourViews():
             if d == 'F':
                 tx = st + ' ' + distx + '  ' + nm + sp + gl
                 tcod.console_print_ex(
-                    four_views_pnl, p-len(tx)-xmarg, y-marg,
+                    four_views_pnl, p-len(tx)-xmarg, y-ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
-                y -= 2
+                y -= ystep
+                y1 = y - ymarg
             elif d == 'R':
                 tx = gl + sp + nm + '  ' + distx + ' ' + st
                 tcod.console_print_ex(
-                    four_views_pnl, p+xmarg, y-marg,
+                    four_views_pnl, p+xmarg, y-ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
-                y -= 2
+                y -= ystep
+                y1 = y - ymarg
             elif d == 'B':
                 tx = gl + sp + nm + '  ' + distx + ' ' + st
                 tcod.console_print_ex(
-                    four_views_pnl, p+xmarg, y+marg,
+                    four_views_pnl, p+xmarg, y+ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
-                y += 2
+                y += ystep
+                y1 = y + ymarg
             else:
                 tx = st + ' ' + distx + '  ' + nm + sp + gl
                 tcod.console_print_ex(
-                    four_views_pnl, p-len(tx)-xmarg, y+marg,
+                    four_views_pnl, p-len(tx)-xmarg, y+ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
-                y += 2
+                y += ystep
+                y1 = y + ymarg
         ## Distant landmarks
         if not at.room.ceiling and direction_site_dict[d]:
             xmarg = FOUR_VIEWS_PNL_WD // 6 + 8
-            ymarg = marg + 4
+            ymarg = pymarg
+            if abs(y1-q) <= FOUR_VIEWS_PNL_HT // 4:
+                ymarg += FOUR_VIEWS_PNL_HT//4 - abs(y1-q)
             for i in direction_site_dict[d]:
                 tx = i.name
                 if d == 'F':
@@ -3626,10 +3645,12 @@ def FourViews():
             else:
                 through_doorway = True
         if through_doorway and d in ['R', 'L']:                
-            textw += '////////\n' * 2 + '\n'
+            textw += ('/'*(DISPWALLWD//2)+'\n')*2 + '\n'
         else:
             if isinstance(dfw, int):
-                wallwd = DISPWALLWD
+                wallwd = DISPWALLWD - dfw//2
+                if wallwd < 2:
+                    wallwd = 2
             else:
                 if dfw == 'no wall' and isinstance(at.room, Field) and at.room.town:
                     ##..^##
@@ -4200,20 +4221,18 @@ def NxDoor(portal, room, pair=False):
 CITYGATEXY = [(200, 299), (299, 200), (200, 100), (100, 200)]
 
 INS = {
-    'ogre': [['OGRE', 'MAN', 'GIANT'], ['OFWILD', 'OFMOUNTAIN']]}
+    'ogre': [['O G R E ', 'M A N', 'G I A N T'], ['of W I L D', 'of M O U N T A I N']],
+    '2fish': [['D I P E S K S', 'D I P E S C S']]}
 
 INSPIC = {
-    'ogre': ['broad humanoid', 'muscular humanoid', 'menacing humanoid']}
+    'ogre': ['broad humanoid', 'muscular humanoid', 'menacing humanoid'],
+    '2fish': ['two circles\neach containing a fish']}
 
 def Ins(motif):
     lst = INS[motif]
     ins = ''
-    text = ''
     for pt in lst:
-        text += random.choice(pt)
-    lst1 = list(text)
-    for letter in lst1:
-        ins += letter + ' '
+        ins += random.choice(pt) + ' '
     ins += '\n\n'
     ins += '[picture of ' + random.choice(INSPIC[motif]) + ']'
 
@@ -4348,7 +4367,7 @@ def MakeTown(roomnum=3):
 def MakeCave():
     mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW', walltype='rock slope')
     field = mountain.room_list[0]
-    cave = Room(30, 30, mountain)
+    cave = Room(30, 30, mountain, flomat='STONE FLOOR')
     side = random.randint(0, 3)
     x0, y0 = Siding(side, cave.x, cave.y, middle=True)
     x1, y1 = CITYGATEXY[side]
@@ -4357,6 +4376,8 @@ def MakeCave():
     xog, yog = Siding(ReverseSide(side), cave.x, cave.y, drift=True, edgible=False)
     ogre = Item('ogre', xog, yog, cave, facing=fa)
     ogre.task.append(Task('ambush', 30))
+    insx, insy = Siding(ReverseSide(side), cave.x, cave.y)
+    Item('inscription', insx, insy, cave, ins=Ins('2fish'))
 
     return mountain
 
