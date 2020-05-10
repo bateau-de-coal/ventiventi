@@ -310,14 +310,19 @@ SOFT = [
 
 LEATHER = [
     'scabbard',
-    'sheath']
+    'sheath',
+    'boot',]
 
 BAG = [
     'pouch',
     'scabbard',
     'sheath']
 
-CANTPICK = ANIMATE + FURNITURE + ['inscription']
+CANTPICK = ANIMATE + FURNITURE
+CANTPICK += [
+    'inscription',
+    'tree',
+    'branch']
 
 CURVED_WEAPON = [
     'scimitar']
@@ -342,6 +347,8 @@ LENGTH = {
     'dwarf': 100,
     'gnome': 60,
     'ogre': 250,
+    'tree': 500,
+    'branch': 100,
     'sword': 60,
     'scimitar': 50,
     'hammer': 30,
@@ -353,6 +360,7 @@ LENGTH = {
     'pouch': 15,
     'scabbard': 65,
     'sheath': 35,
+    'boot': 30,
     'gold': 1}
 
 THICK = {
@@ -375,6 +383,8 @@ THICK = {
     'dwarf': 20,
     'gnome': 10,
     'ogre': 50,
+    'tree': 50,
+    'branch': 10,
     'sword': 1,
     'scimitar': 1,
     'hammer': 5,
@@ -386,6 +396,7 @@ THICK = {
     'pouch': 15,
     'scabbard': 3,
     'sheath': 3,
+    'boot': 30,
     'gold': 1}
 
 WIDTH = {
@@ -408,6 +419,8 @@ WIDTH = {
     'dwarf': 40,
     'gnome': 20,
     'ogre': 100,
+    'tree': 50,
+    'branch': 10,
     'sword': 5,
     'scimitar': 15,
     'hammer': 15,
@@ -419,6 +432,7 @@ WIDTH = {
     'pouch': 15,
     'scabbard': 12,
     'sheath': 12,
+    'boot': 10,
     'gold': 1}
 
 SMALL = [
@@ -448,6 +462,7 @@ GLYPH = {
     'pouch': ')',
     'scabbard': ')',
     'sheath': ')',
+    'boot': ')',
     'key': ':',
     'shopkeeper': '@',
     'guard': '@',
@@ -460,6 +475,8 @@ GLYPH = {
     'goblin': 'g',
     'gnome': 'gn',
     'ogre': 'O',
+    'tree': 'T',
+    'branch': '/',
     'gold': '$'}
 
 PRICE = {
@@ -476,6 +493,7 @@ PRICE = {
     'pouch': 100,
     'scabbard': 100,
     'sheath': 100,
+    'boot': 100,
     'key': 100,
     'shopkeeper': 100,
     'guard': 100,
@@ -668,14 +686,21 @@ class Room:
     '''A room'''
     ##bmap = block map, Room shouldn't be smaller than 3x3
     def __init__(
-        self, x, y, site, ceiling=True, name=None, flomat=None):
+        self, x, y, site, ceiling=True, name=None, flomat=None, wlmat=None):
 
         self.x = x
         self.y = y
         self.site = site
         site.room_list.append(self)
         self.ceiling = ceiling
-        self.flomat = flomat
+        if flomat is None:
+            self.flomat = site.natfl
+        else:
+            self.flomat = flomat
+        if wlmat is None:
+            self.wlmat = site.walltype
+        else:
+            self.wlmat = wlmat
         self.name = name
         self.item_list = []
         self.aoe_list = []
@@ -704,7 +729,11 @@ class Field:
         self.bmap = [[0 for i in range(y)] for j in range(x)]
         self.town = False
         self.ceiling = False
-        self.flomat = flomat
+        if flomat is None:
+            self.flomat = site.natfl
+        else:
+            self.flomat = flomat
+        self.wlmat = site.walltype
 
 class Door:
     '''A door'''
@@ -712,7 +741,7 @@ class Door:
     def __init__(
         self, room0, x0, y0, room1, x1, y1, doortype='door',
         closed=True, lock=None,
-        name0='', name1='', name=None, flomat=None):
+        name0='', name1='', name=None, flomat=None, wlmat=None):
         
         self.site = room0.site  ##room0 and room1 should be on the same site
         self.site.room_list.append(self)
@@ -776,7 +805,14 @@ class Door:
         self.name = name
         self.doortype = doortype
         self.ceiling = True
-        self.flomat = flomat
+        if flomat is None:
+            self.flomat = site.natfl
+        else:
+            self.flomat = flomat
+        if wlmat is None:
+            self.wlmat = self.site.walltype
+        else:
+            self.wlmat = wlmat
         self.item_list = []
         self.door = (Item(doortype, 0, 0, self, names={room0: name0, room1: name1}, lock=lock))
         self.aoe_list = []
@@ -823,7 +859,7 @@ class Item:
         dodge_sk=10, fight_sk=10,
         facing='N',
         eqstyle = None,
-        flask=None, lock=None, key_to=None, bag=False, ins=None,
+        flask=None, lock=None, key_to=None, bag=False, ins=None, tree=None,
         owner=None, shk=False):
 
         self.tipo=tipo
@@ -851,6 +887,8 @@ class Item:
         if self.tipo in HUMAN:
             self.gender = random.choice(['man', 'woman'])
         self.paralyzed = False
+        self.suffocate = None
+        self.fixedto = None
         self.charisma = random.randint(0, 1)
 
         if name:
@@ -873,6 +911,11 @@ class Item:
                         break
                     if count >= 100:
                         self.name = 'Jo'
+            elif tree:
+                if 'banyan' in tree.name:
+                    self.name = 'banyan vine'
+                else:
+                    self.name = 'branch'
             else:
                 self.name = tipo
         if self.material:
@@ -909,6 +952,10 @@ class Item:
         else:
             self.body = {
                 'body': self.thick}
+        if self.tipo == 'tree':
+            self.branch = []
+            for i in range(3):
+                self.branch.append(Item('branch', self.x, self.y, self.room, tree=self))
         self.maxhp = copy.copy(self.body)
 
         self.inv=[]
@@ -980,6 +1027,8 @@ class Item:
             self.bag = []
         if tipo in BAG:
             self.bag = []
+        if tipo in FURNITURE:
+            self.finvt = []  ##Furniture inv "on the top"
         if flask:
             self.flask = flask
             text = 'flask of '
@@ -998,8 +1047,9 @@ class Item:
         if key_to:
             self.key_to = key_to
         self.ins = ins
-        if tipo in FURNITURE:
-            self.finvt = []  ##Furniture inv "on the top"
+        self.tree = tree
+        self.bird = []
+        self.looped = False
 
         self.poison = {}
         self.epoi = []  ##Effects of poison
@@ -1026,6 +1076,8 @@ class Item:
 
     def Name(self):
         n = self.name
+        if self.looped:
+            n += ' loop'
         return n
 
     def Au(self):
@@ -1140,112 +1192,113 @@ class Item:
             if part.startswith('leg') and hp > 0:
                 has_leg = True
                 break
-        if has_leg:
-            if self.paralyzed:
-                result = 'WEAK'
+        if not has_leg:
+            result = 'NO_LEG'
+        elif self.fixedto:
+            result = 'FIXED'
+        elif self.paralyzed:
+            result = 'WEAK'
+        else:
+            ##This takes (0, 1) or 'N' and gets dx, dy and facing
+            if to in VECTOR:
+                dx, dy = VECTOR[to]
+                if not translate:
+                    self.facing = to
             else:
-                ##This takes (0, 1) or 'N' and gets dx, dy and facing
-                if to in VECTOR:
-                    dx, dy = VECTOR[to]
-                    if not translate:
-                        self.facing = to
-                else:
-                    dx, dy = to
-                    if not translate:
-                        if not (dx==0 and dy==0):
-                            self.facing = VECTOR1[dx+1][dy+1]
-                if self.stance != self.defaultstance:
-                    self.stance = self.defaultstance
-                    result = 'GET_UP'
-                else:
-                    ##Room, Field
-                    if isinstance(self.room, Room) or isinstance(self.room, Field):
-                        x1 = self.x + dx
-                        y1 = self.y + dy
-                        ##Within one room(or field)
-                        if x1 in range(self.room.x) and y1 in range(self.room.y):
-                            block = self.room.bmap[x1][y1]
-                            if block == 0:
-                                self.x = x1
-                                self.y = y1
-                                self.MoveInv()
-                                result = 'CAN_PASS'
-                            elif block in [1, 3]:
-                                result = 'BLOCKED'
-                            elif block == 2:
-                                ##Enter doorway
-                                self.room.item_list.remove(self)
-                                for door, coordinate in self.room.portal.items():
-                                    m, n = coordinate
-                                    if x1 == m and y1 == n:
-                                        if not translate:
-                                            u, v = door.vectors[self.room]
-                                            u = -u
-                                            v = -v
-                                            for d, vector in VECTOR.items():
-                                                p, q = vector
-                                                if u == p and v == q:
-                                                    self.facing = d
-                                                    break
-                                        self.room = door
-                                        self.x = 0
-                                        self.y = 0
-                                        self.room.item_list.append(self)
-                                        self.MoveInv()
-                                        result = 'CAN_PASS'
-                                        break
-                        ##Stuck in wall(room). Go to another Field. Go beyond the range(but still on the same field).
-                        else:
-                            if isinstance(self.room, Field):
-                                sx = self.room.site.x
-                                sy = self.room.site.y
-                                sx1 = sx + dx
-                                sy1 = sy + dy
-                                newst = None
-                                for st in worldmap:
-                                    if sx1 == st.x and sy1 == st.y:
-                                        newst = st
-                                if newst is None:
-                                    newst = Site(sx1, sy1)
-                                self.room.item_list.remove(self)
-                                self.room = newst.room_list[0]
-                                if x1 < 0:
-                                    x1 = 399
-                                elif x1 >= self.room.x:
-                                    x1 = 0
-                                if y1 < 0:
-                                    y1 = 399
-                                elif y1 >= self.room.x:
-                                    y1 = 0
-                                self.x = x1
-                                self.y = y1
-                                self.room.item_list.append(self)
-                                self.MoveInv()
-                                result = 'CAN_PASS'
-                            else:
-                                result = 'BLOCKED'
-                    ##Door                        
-                    elif isinstance(self.room, Door):
-                        for room in self.room.portal.keys():
-                            m, n = room.portal[self.room]
-                            m1 = m + dx
-                            n1 = n + dy
-                            if m1 in range(room.x) and n1 in range(room.y):
-                                block = room.bmap[m1][n1]
-                                if block == 0:
-                                    self.room.item_list.remove(self)
-                                    self.room = room
-                                    self.x = m1
-                                    self.y = n1
+                dx, dy = to
+                if not translate:
+                    if not (dx==0 and dy==0):
+                        self.facing = VECTOR1[dx+1][dy+1]
+            if self.stance != self.defaultstance:
+                self.stance = self.defaultstance
+                result = 'GET_UP'
+            else:
+                ##Room, Field
+                if isinstance(self.room, Room) or isinstance(self.room, Field):
+                    x1 = self.x + dx
+                    y1 = self.y + dy
+                    ##Within one room(or field)
+                    if x1 in range(self.room.x) and y1 in range(self.room.y):
+                        block = self.room.bmap[x1][y1]
+                        if block == 0:
+                            self.x = x1
+                            self.y = y1
+                            self.MoveInv()
+                            result = 'CAN_PASS'
+                        elif block in [1, 3]:
+                            result = 'BLOCKED'
+                        elif block == 2:
+                            ##Enter doorway
+                            self.room.item_list.remove(self)
+                            for door, coordinate in self.room.portal.items():
+                                m, n = coordinate
+                                if x1 == m and y1 == n:
+                                    if not translate:
+                                        u, v = door.vectors[self.room]
+                                        u = -u
+                                        v = -v
+                                        for d, vector in VECTOR.items():
+                                            p, q = vector
+                                            if u == p and v == q:
+                                                self.facing = d
+                                                break
+                                    self.room = door
+                                    self.x = 0
+                                    self.y = 0
                                     self.room.item_list.append(self)
                                     self.MoveInv()
                                     result = 'CAN_PASS'
                                     break
-                                elif block in [1, 2, 3]:
-                                    result = 'BLOCKED'
-                                    break
-        else:
-            result = 'NO_LEG'
+                    ##Stuck in wall(room). Go to another Field. Go beyond the range(but still on the same field).
+                    else:
+                        if isinstance(self.room, Field):
+                            sx = self.room.site.x
+                            sy = self.room.site.y
+                            sx1 = sx + dx
+                            sy1 = sy + dy
+                            newst = None
+                            for st in worldmap:
+                                if sx1 == st.x and sy1 == st.y:
+                                    newst = st
+                            if newst is None:
+                                newst = Site(sx1, sy1)
+                            self.room.item_list.remove(self)
+                            self.room = newst.room_list[0]
+                            if x1 < 0:
+                                x1 = 399
+                            elif x1 >= self.room.x:
+                                x1 = 0
+                            if y1 < 0:
+                                y1 = 399
+                            elif y1 >= self.room.x:
+                                y1 = 0
+                            self.x = x1
+                            self.y = y1
+                            self.room.item_list.append(self)
+                            self.MoveInv()
+                            result = 'CAN_PASS'
+                        else:
+                            result = 'BLOCKED'
+                ##Door                        
+                elif isinstance(self.room, Door):
+                    for room in self.room.portal.keys():
+                        m, n = room.portal[self.room]
+                        m1 = m + dx
+                        n1 = n + dy
+                        if m1 in range(room.x) and n1 in range(room.y):
+                            block = room.bmap[m1][n1]
+                            if block == 0:
+                                self.room.item_list.remove(self)
+                                self.room = room
+                                self.x = m1
+                                self.y = n1
+                                self.room.item_list.append(self)
+                                self.MoveInv()
+                                result = 'CAN_PASS'
+                                break
+                            elif block in [1, 2, 3]:
+                                result = 'BLOCKED'
+                                break
         if result in ['CAN_PASS', 'GET_UP']:
             self.time -= 10
             if result == 'GET_UP':
@@ -1536,7 +1589,7 @@ class Item:
                         break
                 if not has_leg:
                     self.stance = 0
-                    if CanSee(self, at):
+                    if CanSee(self, at) and self.fixedto is None:
                         Message(self.name + ' falls over')
             elif part in ['head', 'body']:
                 if self.anim:
@@ -1550,9 +1603,9 @@ class Item:
                     if autoscope == self:
                         autoscope = None
                     if self.stance > 0:
-                        if CanSee(self, at):
+                        if CanSee(self, at) and self.fixedto is None:
                             Message(self.name + ' falls over')
-                        self.stance = 0
+                            self.stance = 0
                     if self == at:
                         Message('you die')
                     for part in self.body.keys():
@@ -2158,8 +2211,8 @@ def CanHold(it, bag):
 
     return can
 
-def LooseItems(exclude_f=True):  ##exclude_f: exclude items on/in furniture
-    '''Items not in someone's inv and not in bag and visible'''
+def FreeSt(rider=False):  ##rider: include items on furniture/branch/etc.
+    '''Free standing visible items'''
     items = CanSeeList(at)
     to_remove = set()
     for item in items:
@@ -2167,10 +2220,15 @@ def LooseItems(exclude_f=True):  ##exclude_f: exclude items on/in furniture
             to_remove.add(item1)
         for item2 in item.BagContent():
             to_remove.add(item2)
-        if exclude_f:
+        if not rider:
             if hasattr(item, 'finvt'):
                 for item3 in item.finvt:
                     to_remove.add(item3)
+            if hasattr(item, 'branch'):
+                for item3 in item.branch:
+                    to_remove.add(item3)
+            for item3 in item.bird:
+                to_remove.add(item3)
     for tr in to_remove:
         items.remove(tr)
     return items
@@ -2181,7 +2239,7 @@ def Use():
     result = None
     refresh = True
     ##Write the choices
-    for item in LooseItems(exclude_f=False):        
+    for item in FreeSt(rider=True):        
         if item != at and Distance(at, item) == 0:
             if item.tipo not in CANTPICK:
                 ##Pick up
@@ -2190,9 +2248,17 @@ def Use():
                     if o.status == 'WAITING FOR PICKUP' and o.good == item:
                         text += '    BOUGHT'
                 selec.append([text, ('p', item)])
-            elif item.tipo == 'bell':
-                ##Bell
-                selec.append(['pull bell string', ('pbs', item)])
+            else:
+                if item.tipo == 'bell':
+                    ##Bell
+                    selec.append(['pull bell string', ('pbs', item)])
+                elif item.tipo == 'branch' and 'banyan' in item.name:
+                    if item.looped:
+                        selec.append(['untie banyan vine loop', ('utbnlp', item)])
+                        if not item.bird:
+                            selec.append(['put banyan vine loop around neck', ('hang', item)])
+                    else:
+                        selec.append(['tie banyan vine into a loop', ('bnlp', item)])
         ##Trade
         if at.speaking <= 0 and item != at and item.shk:
             d = '    ' + NESWtoFRBL(at.facing, Direction(at, item, dn='cardinal'))
@@ -2266,6 +2332,36 @@ def Use():
                         at.time -= 10
                     else:
                         Message('you have no hand')
+                elif action == 'bnlp':
+                    if at.HasPart('arm'):
+                        Message(at.Name() + ' ties banyan vine into a loop')
+                        obj.looped = True
+                        at.time -= 10
+                    else:
+                        Message('you have no hand')
+                elif action == 'utbnlp':
+                    if at.HasPart('arm'):
+                        Message(at.Name() + ' unties banyan vine loop')
+                        obj.looped = False
+                        at.time -= 10
+                        for bd in obj.bird:
+                            if bd.fixedto == obj:
+                                bd.fixedto = None
+                                Message(bd.Name() + ' falls down')
+                                if bd.suffocate is not None:
+                                    bd.suffocate = None
+                        obj.bird = []
+                    else:
+                        Message('you have no hand')
+                elif action == 'hang':
+                    tx = at.Name() + ' puts banyan vine around neck'
+                    Message(tx)
+                    Prompt(tx, refresh=False)
+                    obj.bird.append(at)
+                    at.fixedto = obj
+                    Prompt('banyan vine loop tightens!')
+                    at.suffocate = turn
+                    at.time -= 10
                 ##Another menu for trading
                 elif action == 't':
                     selec = []
@@ -2299,10 +2395,23 @@ def Use():
                                 room.bmap[u][v] = 2
                             result = ('o', obj)
                         at.time -= 10
+                        if obj.doortype == 'gate':
+                            for ics in CanSeeList(obj.door):
+                                if ics.tipo.startswith('guard') and ics.attack != at:
+                                    ics.task.append(Task('donttouchgate', at))
+                                    ics.attack = at
+                                    break
                     else:
                         Message('you have no hand')
                 elif action == 'c':
                     if at.HasPart('arm'):                
+                        if obj.doortype == 'gate':
+                            for ics in CanSeeList(obj.door):
+                                if ics.tipo.startswith('guard') and ics.attack != at:
+                                    ics.task.append(Task('donttouchgate', at))
+                                    ics.task.append(Task('opengate', obj))
+                                    ics.attack = at
+                                    break
                         if len(obj.item_list) > 1:
                             Message('something is in the way')
                         else:
@@ -2312,7 +2421,7 @@ def Use():
                                 u, v = room.portal[obj]
                                 room.bmap[u][v] = 3
                             result = ('c', obj)
-                            at.time -= 10
+                        at.time -= 10
                     else:
                         Message('you have no hand')
                 elif action == 'k':
@@ -2405,7 +2514,7 @@ def Give():
             else:
                 selec.append(['give ' + NameSco(weapon) + ' to...', weapon])
     receiver = []
-    for li in LooseItems():
+    for li in FreeSt():
         if li != at and li.anim and Distance(at, li) <= 1:
             receiver.append(li)
             
@@ -2925,6 +3034,8 @@ def Scope(target, selfscope=False):
         ##Name
         if target.tipo in DOOR:
             text = target.tipo
+        elif target.tipo == 'inscription':
+            text = target.tipo + ' on ' + target.room.wlmat.lower()
         else:
             text = NameSco(target)
         if target.display_move:
@@ -3027,37 +3138,68 @@ def Scope(target, selfscope=False):
                     tcod.BKGND_NONE, tcod.LEFT,
                     NameSco(i))
                 y += 1
+        elif target.tipo == 'tree':
+            p, q = SCOCEN
+            y = q
+            for br in target.branch:
+                tcod.console_print_ex(
+                    panel, p, y,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    br.Name())
+                y += 1
+        elif target.bird:
+            p, q = SCOCEN
+            y = q
+            for bd in target.bird:
+                tcod.console_print_ex(
+                    panel, p, y,
+                    tcod.BKGND_NONE, tcod.LEFT,
+                    bd.Name())
+                y += 1
             
     tcod.console_blit(
         panel, 0, 0,
         W, H, 0,
         L, T)
-    tcod.console_flush()      
+    tcod.console_flush()
+
+def PView(i, marg):
+    '''Used in View()'''
+    selec = []
+    space = ' ' * (marg+2)
+    if i.inv:
+        for weapon in i.wield:
+            if weapon:
+                if isinstance(weapon, list):
+                    for w in weapon:
+                        selec.append([space + NameSco(w), w])
+                else:
+                    selec.append([space + NameSco(weapon), weapon])
+        for armor in i.wear:
+            selec.append([space + NameSco(armor), armor])
+    elif hasattr(i, 'finvt'):
+        for j in i.finvt:
+            selec.append([space + NameSco(j), j])
+            selec += PView(j, marg+2)
+    elif hasattr(i, 'branch'):
+        for br in i.branch:
+            selec.append([space + NameSco(br), br])
+            for bd in br.bird:
+                space1 = space + '  '
+                selec.append([space1 + NameSco(bd), bd])
+                selec += PView(bd, marg+4)
+    return selec
 
 def View():
     '''View visible items'''
     selec = []
-    for i in LooseItems():
+    for i in FreeSt():
         d = Direction(at, i, dn=8)
         dis = Distance(at, i)
         text = d + ' ' + str(dis) + '    '
         ##For getting indentation when showing wielded or worn items, or items on table
         selec.append([text + NameSco(i), i])
-        if i.inv:
-            space = ' ' * len(text) + '  '
-            for weapon in i.wield:
-                if weapon:
-                    if isinstance(weapon, list):
-                        for w in weapon:
-                            selec.append([space + NameSco(w), w])
-                    else:
-                        selec.append([space + NameSco(weapon), weapon])
-            for armor in i.wear:
-                selec.append([space + NameSco(armor), armor])
-        elif hasattr(i, 'finvt'):
-            space = ' ' * len(text) + '  '
-            for j in i.finvt:
-                selec.append([space + NameSco(j), j])
+        selec += PView(i, len(text))
     if isinstance(at.room, Field):
         if at.room.town:
             wl = Discen(at.x, at.y)
@@ -3065,13 +3207,13 @@ def View():
                 wl = '///'
             d = Direction(at, (199, 199), dn='cardinal')
             d = NESWtoFRBL(at.facing, d)
-            selec.append([d + ' ' + str(wl) + '    ' + at.room.site.walltype, 'wall'])
+            selec.append([d + ' ' + str(wl) + '    ' + at.room.wlmat, 'wall'])
     else:
         for d in ['N', 'E', 'S', 'W']:
             wl = DFW(at, d)
             if isinstance(wl, int):
                 d = NESWtoFRBL(at.facing, d)
-                selec.append([d + ' ' + str(wl) + '    ' + at.room.site.walltype, 'wall'])
+                selec.append([d + ' ' + str(wl) + '    ' + at.room.wlmat, 'wall'])
         
     if selec:
         chosen = Menu('view?', selec)
@@ -3114,7 +3256,7 @@ SUB_V = [
     (FOUR_VIEWS_PNL_WD // 2, 1, 'R'),
     (1, FOUR_VIEWS_PNL_HT // 2, 'L'),
     (FOUR_VIEWS_PNL_WD // 2, FOUR_VIEWS_PNL_HT // 2, 'B')]
-DISPWALLWD = FOUR_VIEWS_PNL_WD // 5
+DISPWALLWD = 8
 
 VIEW_WD = MESSAGE_PNL_WD // 2
 VIEW_HT = MESSAGE_PNL_HT
@@ -3274,9 +3416,13 @@ def Glyph(item):
     if isinstance(item, Item):
         if item.tipo in DOOR:
             if item.room.bmap[0][0] == 3:
-                glyph = '|+|'
+                glyph = '+'
             else:
-                glyph = '|\'|'
+                glyph = '\''
+            if item.tipo == 'door':
+                glyph = '|' + glyph + '|'
+            else:
+                glyph = '[' + glyph + ']'
             if item.lock:
                 if item.locked:
                     glyph += 'L'
@@ -3302,6 +3448,10 @@ def Glyph(item):
                     if ibg.tipo in WEAPON:
                         glyph += '*'
                         break
+            if item.tipo == 'tree':
+                for br in item.branch:
+                    for bd in br.bird:
+                        glyph += GLYPH[bd.tipo]
     elif isinstance(item, AOE):
         glyph = '~ ~ ~'
     return glyph
@@ -3434,7 +3584,7 @@ def Sky():
         sky_pnl, xw, q,
         tcod.BKGND_NONE, tcod.LEFT,
         text)
-    if text != 'CEILING':
+    if not at.room.ceiling:
         cele = ''
         if sun:
             ds = Sun(ho)
@@ -3463,11 +3613,7 @@ def Sky():
         SKY_LF, SKY_TP)
     ##Floor
     tcod.console_clear(floor_pnl)
-    text = ''
-    if at.room.flomat:
-        text = at.room.flomat
-    elif at.room.site.natfl:
-        text = at.room.site.natfl
+    text = at.room.flomat
     txtlen = len(text)
     tcod.console_print_ex(
         floor_pnl, FLOOR_WD//2-txtlen//2-4, FLOOR_HT//2,
@@ -3493,7 +3639,7 @@ def FourViews():
 
     ##Items
     item_distance_dict = {}
-    for i in LooseItems():
+    for i in FreeSt():
         if i != at:
             item_distance_dict[i] = Distance(at, i)
     for aoe in CSmL(at):
@@ -3525,18 +3671,73 @@ def FourViews():
         direction_site_dict[Direction(at, i[0])].append(i[0])
     ##Print the four views
     p, q = (FOUR_VIEWS_PNL_WD//2, FOUR_VIEWS_PNL_HT//2)
-    pxmarg = max(1, FOUR_VIEWS_PNL_WD // 40)
-    pymarg = max(1, FOUR_VIEWS_PNL_HT // 20)
+    pxmarg = FOUR_VIEWS_PNL_WD // 40
+    pymarg = FOUR_VIEWS_PNL_HT // 20
     ystep = 3
+    crowded = False
     for d in CARDINAL4:
-        if len(direction_item_dict) > FOUR_VIEWS_PNL_HT // 3:
-            pymarg = max(1, FOUR_VIEWS_PNL_HT // 40)
+        if len(direction_item_dict) > FOUR_VIEWS_PNL_HT // 6:
+            crowded = True
+            pymarg = FOUR_VIEWS_PNL_HT // 40
             ystep = 2
             break
     for d in CARDINAL4:
+        x = p
         y = q
         y1 = q
+        x1 = p
+        ##Door frame
+        doorframe = False
+        halfwall = False
+        if isinstance(at.room, Door):
+            u, v = VECTOR[at.facing]
+            u1, v1 = list(at.room.vectors.values())[0]
+            if u*u1 + v*v1 == 0:
+            ##Right angle
+                if d in ['F', 'B']:
+                    doorframe = True
+            elif (u==u1 and v==v1) or (u==u1 and v+v1==0) or (u+u1==0 and v==v1):
+            ##Parallel
+                if d in ['R', 'L']:
+                    doorframe = True
+            else:
+                if d in ['R', 'L']:
+                    doorframe = True
+                    halfwall = True
+                
+            if doorframe:
+                wallwd = DISPWALLWD
+                if halfwall:
+                    wallwd = wallwd // 2
+                textw = ('/'*wallwd+'\n')*2 + '\n'
+                xmarg = pxmarg
+                ymarg = pymarg
+                if d == 'F':
+                    tcod.console_print_ex(
+                        four_views_pnl, p-wallwd-xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y-ymarg
+                elif d == 'R':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y-ymarg
+                elif d == 'B':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y+ymarg
+                else:
+                    tcod.console_print_ex(
+                        four_views_pnl, p-wallwd-xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y+ymarg
         ##Items
+        y = y1
         for i in direction_item_dict[d]:
             dis = item_distance_dict[i]
             if i.tipo in DOOR+['inscription'] and dis == 1:
@@ -3550,7 +3751,17 @@ def FourViews():
             xmarg += pxmarg
             if xmarg >= FOUR_VIEWS_PNL_WD // 4:
                 xmarg = FOUR_VIEWS_PNL_WD // 4
-            ymarg = pymarg
+            if not crowded:
+                if dis > 10:
+                    ymarg = FOUR_VIEWS_PNL_HT // 6
+                elif dis > 5:
+                    ymarg = FOUR_VIEWS_PNL_HT // 12
+                else:
+                    ymarg = pymarg
+            else:
+                ymarg = pymarg
+            xmarg = max(1, xmarg)
+            ymarg = max(1, ymarg)
 
             if i.tipo in DOOR:
                 nm = DoorPlate(i, True)
@@ -3573,7 +3784,8 @@ def FourViews():
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
                 y -= ystep
-                y1 = y - ymarg
+                y1 = y-ymarg
+                x1 = p-xmarg
             elif d == 'R':
                 tx = gl + sp + nm + '  ' + distx + ' ' + st
                 tcod.console_print_ex(
@@ -3581,7 +3793,8 @@ def FourViews():
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
                 y -= ystep
-                y1 = y - ymarg
+                y1 = y-ymarg
+                x1 = p+xmarg
             elif d == 'B':
                 tx = gl + sp + nm + '  ' + distx + ' ' + st
                 tcod.console_print_ex(
@@ -3589,7 +3802,8 @@ def FourViews():
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
                 y += ystep
-                y1 = y + ymarg
+                y1 = y+ymarg
+                x1 = p+xmarg
             else:
                 tx = st + ' ' + distx + '  ' + nm + sp + gl
                 tcod.console_print_ex(
@@ -3597,56 +3811,13 @@ def FourViews():
                     tcod.BKGND_NONE, tcod.LEFT,
                     tx)
                 y += ystep
-                y1 = y + ymarg
-        ## Distant landmarks
-        if not at.room.ceiling and direction_site_dict[d]:
-            xmarg = FOUR_VIEWS_PNL_WD // 6 + 8
-            ymarg = pymarg
-            if abs(y1-q) <= FOUR_VIEWS_PNL_HT // 4:
-                ymarg += FOUR_VIEWS_PNL_HT//4 - abs(y1-q)
-            for i in direction_site_dict[d]:
-                tx = i.name
-                if d == 'F':
-                    tcod.console_print_ex(
-                        four_views_pnl, p-len(tx)-xmarg, y-ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        '^_  '+tx)
-                    y -= 2
-                elif d == 'R':
-                    tcod.console_print_ex(
-                        four_views_pnl, p+xmarg, y-ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        tx+'  _^')
-                    y -= 2
-                elif d == 'B':
-                    tcod.console_print_ex(
-                        four_views_pnl, p+xmarg, y+ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        tx+'  _^')
-                    y += 2
-                else:
-                    tcod.console_print_ex(
-                        four_views_pnl, p-len(tx)-xmarg, y+ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        '^_  '+tx)
-                    y += 2
+                y1 = y+ymarg
+                x1 = p-xmarg
         ##Wall
-        textw = ''
-        to = FRBLtoNESW(at.facing, d)
-        dfw = DFW(at, to)
-        through_doorway = False
-        if isinstance(at.room, Door):
-            u, v = VECTOR[at.facing]
-            for vec in at.room.vectors.values():
-                u1, v1 = vec
-                break
-            if u*u1 + v*v1 == 0 or (u==u1 and v==v1) or (u==u1 and v+v1==0) or (u+u1==0 and v==v1):
-                pass
-            else:
-                through_doorway = True
-        if through_doorway and d in ['R', 'L']:                
-            textw += ('/'*(DISPWALLWD//2)+'\n')*2 + '\n'
-        else:
+        if not doorframe:
+            textw = ''
+            to = FRBLtoNESW(at.facing, d)
+            dfw = DFW(at, to)
             if isinstance(dfw, int):
                 wallwd = DISPWALLWD - dfw//2
                 if wallwd < 2:
@@ -3671,26 +3842,88 @@ def FourViews():
                 textw += wall + '\n'
                 if dfw > 1:
                     textw += str(dfw) + 'm\n'
-        if d == 'F':
-            tcod.console_print_ex(
-                four_views_pnl, 1, 0,
-                tcod.BKGND_NONE, tcod.LEFT,
-                textw)
-        elif d == 'R':
-            tcod.console_print_ex(
-                four_views_pnl, FOUR_VIEWS_PNL_WD-3, 0,
-                tcod.BKGND_NONE, tcod.RIGHT,
-                textw)
-        elif d == 'L':
-            tcod.console_print_ex(
-                four_views_pnl, 1, FOUR_VIEWS_PNL_HT-6,
-                tcod.BKGND_NONE, tcod.LEFT,
-                textw)
-        elif d == 'B':
-            tcod.console_print_ex(
-                four_views_pnl, FOUR_VIEWS_PNL_WD-3, FOUR_VIEWS_PNL_HT-6,
-                tcod.BKGND_NONE, tcod.RIGHT,
-                textw)
+                        
+                xmarg = XMa(dfw)
+                xmarg += pxmarg
+                if xmarg >= FOUR_VIEWS_PNL_WD // 2:
+                    xmarg = FOUR_VIEWS_PNL_WD // 2
+                xmarg = max(1, xmarg)
+                if abs(x1-p) >= xmarg:
+                    x = x1
+                    xmarg = 8
+                if not crowded:
+                    if dfw > 10:
+                        ymarg = FOUR_VIEWS_PNL_HT // 6
+                    elif dfw > 5:
+                        ymarg = FOUR_VIEWS_PNL_HT // 12
+                    else:
+                        ymarg = pymarg
+                else:
+                    ymarg = pymarg
+                ymarg = max(1, ymarg)
+                if abs(y1-q) > ymarg:
+                    ymarg = 3
+                    y = y1
+
+                if d == 'F':
+                    tcod.console_print_ex(
+                        four_views_pnl, x-wallwd-xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y-ymarg
+                elif d == 'R':
+                    tcod.console_print_ex(
+                        four_views_pnl, x+xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y-ymarg
+                elif d == 'B':
+                    tcod.console_print_ex(
+                        four_views_pnl, x+xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y+ymarg
+                else:
+                    tcod.console_print_ex(
+                        four_views_pnl, x-wallwd-xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        textw)
+                    y1 = y+ymarg
+        ## Distant landmarks
+        if not at.room.ceiling and direction_site_dict[d]:
+            xmarg = FOUR_VIEWS_PNL_WD // 6 + 8
+            if abs(y1-q) <= FOUR_VIEWS_PNL_HT // 4:
+                ymarg = FOUR_VIEWS_PNL_HT//4 + 4
+                y = q
+            else:
+                ymarg = 4
+                y = y1
+            for i in direction_site_dict[d]:
+                tx = i.name
+                if d == 'F':
+                    tcod.console_print_ex(
+                        four_views_pnl, p-len(tx)-xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        '^_  '+tx)
+                    y -= ystep
+                elif d == 'R':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y-ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        tx+'  _^')
+                    y -= ystep
+                elif d == 'B':
+                    tcod.console_print_ex(
+                        four_views_pnl, p+xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        tx+'  _^')
+                    y += ystep
+                else:
+                    tcod.console_print_ex(
+                        four_views_pnl, p-len(tx)-xmarg, y+ymarg,
+                        tcod.BKGND_NONE, tcod.LEFT,
+                        '^_  '+tx)
+                    y += ystep
         
     tcod.console_blit(
         four_views_pnl, 0, 0,
@@ -3704,6 +3937,10 @@ def FourViews():
     else:
         scope = None
         nearest = None
+        item_distance_dict = {}
+        for i in FreeSt(rider=True):
+            if i != at:
+                item_distance_dict[i] = Distance(at, i)
         for item, distance in sorted(item_distance_dict.items(), key=lambda item: item[1]):
             if item.tipo in ANIMATE:
                 nearest = item
@@ -3717,7 +3954,7 @@ def FourViews():
                 autoscope = None
                 Scope(nearest)
         elif autoscope:
-            if CanSee(autoscope):
+            if CanSee(at, autoscope):
                 Scope(autoscope)
             else:
                 autoscope = None
@@ -4044,7 +4281,7 @@ INTERFACE
         'ESC': 'exit'}
     command = GetCommand(command_dict)
 
-def Intro():
+def Intro(resume=False):
     window = tcod.console_new(SCREEN_WD, SCREEN_HT)
     tcod.console_set_default_foreground(window, tcod.white)
     tcod.console_set_default_background(window, tcod.grey)
@@ -4053,7 +4290,10 @@ def Intro():
     q = SCREEN_HT//2
     y = 0
     ## Print choices
-    for entry in ['START', 'HELP', 'EXIT']:
+    entrylst = ['START', 'HELP', 'EXIT']
+    if resume:
+        entrylst[0] = 'RESUME'
+    for entry in entrylst:
         tcod.console_print_ex(
             window, p+2, q+y,
             tcod.BKGND_NONE, tcod.LEFT,
@@ -4222,19 +4462,27 @@ CITYGATEXY = [(200, 299), (299, 200), (200, 100), (100, 200)]
 
 INS = {
     'ogre': [['O G R E ', 'M A N', 'G I A N T'], ['of W I L D', 'of M O U N T A I N']],
-    '2fish': [['D I P E S K S', 'D I P E S C S']]}
+    '2fish': [['D I P E S K S', 'D I P E S C S']],
+    'wolf': [['L I', 'L U', 'L Y'], ['C O D O M I']],
+    'ao': [['A >P< W']],
+    'adek': [['A A E K A T OIK E I']],
+    '3crows': [['I A T L P S', 'C A M cp I O X W']]}
 
 INSPIC = {
     'ogre': ['broad humanoid', 'muscular humanoid', 'menacing humanoid'],
-    '2fish': ['two circles\neach containing a fish']}
+    '2fish': ['two circles\neach containing a fish'],
+    '3crows': ['three-legged crow', 'three-headed crow', 'three-eyed crow', 'three crows'],
+    'wolf': ['beast'],
+    'ao': ['bird carrying\nwater-spinach']}
 
 def Ins(motif):
     lst = INS[motif]
     ins = ''
     for pt in lst:
         ins += random.choice(pt) + ' '
-    ins += '\n\n'
-    ins += '[picture of ' + random.choice(INSPIC[motif]) + ']'
+    if random.randint(0, 1) and motif in INSPIC:
+        ins += '\n\n'
+        ins += '[picture of ' + random.choice(INSPIC[motif]) + ']'
 
     return ins
     
@@ -4243,6 +4491,7 @@ def MakeTown(roomnum=3):
     field = town.room_list[0]
     short, long = TOWN_SIZE
     townsq = Room(short, long, town, ceiling=False)  ##Town square
+    tree = Item('tree', 50, 50, field, name='large banyan tree')
     side = random.randint(0, 3)
     for n in random.choice(TWINNAMES):
         xgb, ygb = Siding(side, townsq.x, townsq.y, drift=True, edgible=False)
@@ -4300,8 +4549,8 @@ def MakeTown(roomnum=3):
         if sh != 'gnome':
             table = Item('table', x, y, room, name='table')
             if sh == 'smith':
-                for i in range(random.randint(3, 5)):
-                    wptype = random.choice(WEAPON)
+                for i in range(random.randint(5, 8)):
+                    wptype = random.choice(WEAPONC)
                     wp = Item(wptype, table.x, table.y, table.room)
                     table.finvt.append(wp)
                 for i in range(random.randint(3, 5)):
@@ -4316,6 +4565,9 @@ def MakeTown(roomnum=3):
                 for i in range(random.randint(6, 8)):
                     letype = random.choice(SHEATH)
                     le = Item(letype, table.x, table.y, table.room)
+                    table.finvt.append(le)
+                for i in range(random.randint(2, 6)):
+                    le = Item('boot', table.x, table.y, table.room)
                     table.finvt.append(le)
             elif sh == 'mayor':
                 x, y = Siding(side, room.x, room.y, drift=True, edgible=False)
@@ -4351,23 +4603,24 @@ def MakeTown(roomnum=3):
             occ.wield[1] = pt
             occ.inv.append(pt)
 
-    side = random.randint(0, 3)
-    count = 0
-    while True:
-        count += 1
-        insx, insy = Siding(side, townsq.x, townsq.y)
-        if townsq.bmap[insx][insy] == 1:
-            break
-        if count > 100:
-            break
-    Item('inscription', insx, insy, townsq, ins=Ins('ogre'))
+    for instype in ['ogre']+[random.choice(list(INS.keys()))]:
+        side = random.randint(0, 3)
+        count = 0
+        while True:
+            count += 1
+            insx, insy = Siding(side, townsq.x, townsq.y)
+            if townsq.bmap[insx][insy] == 1:
+                break
+            if count > 100:
+                break
+        Item('inscription', insx, insy, townsq, ins=Ins(instype))
 
     return town
 
 def MakeCave():
     mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW', walltype='rock slope')
     field = mountain.room_list[0]
-    cave = Room(30, 30, mountain, flomat='STONE FLOOR')
+    cave = Room(30, 30, mountain, flomat='STONE FLOOR', wlmat='ROCK WALL')
     side = random.randint(0, 3)
     x0, y0 = Siding(side, cave.x, cave.y, middle=True)
     x1, y1 = CITYGATEXY[side]
@@ -4413,8 +4666,8 @@ for st in worldmap:
         wmapsite[st] = (x, y)
 
 for r in town.room_list:
-    if r.name == 'mayor':
-        r_at = r
+    if r.name == 'smith':
+        rat = r
 atx = random.randint(70, 90)
 aty = random.randint(70, 90)
 at = Item('adv', atx, aty, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
@@ -4445,6 +4698,10 @@ while not tcod.console_is_window_closed():
         taskf = []
         taskn = []
         if at.anim:
+            if at.suffocate is not None:
+                tx = 'you can\'t breathe!'
+                Message(tx)
+                Prompt(tx)
             for ts in at.task:
                 name = ts.name
                 detail = ts.detail
@@ -4504,14 +4761,22 @@ while not tcod.console_is_window_closed():
                         at.order.remove(o)
                         o.seller.task.append(Task('beat scammer', at))
                         o.seller.attacksp = at
-                        taskf.append(ts)                    
+                        taskf.append(ts)
+                elif name == 'tamarinfavor':
+                    favor = detail
+                    if favor is None:
+                        if random.randint(0, 50) == 0:
+                            tx = 'you hear a tamarin saying: you owe me a favor'
+                            Message(tx)
+                            Prompt(tx)
+                            ts.detail = random.randint(1, 100)
             for ts in taskf:
                 at.task.remove(ts)
             for ts in taskn:
                 at.task.append(ts)
         command = GetCommand(KEY_DICT)
         if command == 'EXIT':
-            sys.exit()
+            Intro(resume=True)
         elif command == 'WAIT':
             at.time -= 10
         elif command == 'VIEW':
@@ -4540,6 +4805,8 @@ while not tcod.console_is_window_closed():
                     Message('you have no legs')
                 elif result == 'WEAK':
                     Message('your legs feel powerless')
+                elif result == 'FIXED':
+                    Message('you cannot move')
             elif command == 'USE':
                 Use()
             elif command == 'INV':
@@ -4586,6 +4853,8 @@ while not tcod.console_is_window_closed():
                                     if c.anim and c != item and Distance(item, c) <= radius:
                                         item.attack = c
                                         item.LocTar(c)
+                                        if item.tipo == 'ogre':
+                                            item.task.append(Task('fingergun', c))
                                         break
                         elif name == 'prepare':
                             if item.time > 0:
@@ -4641,6 +4910,23 @@ while not tcod.console_is_window_closed():
                                             Message(item.name + ' points a finger at ' + at.name)
                                     item.time -= 10
                                     taskf.append(ts)
+                        elif name == 'fingergun':
+                            victim = detail
+                            if victim.anim:
+                                if item.time > 0 and item.speaking <= 0 and random.randint(0, 200) == 0:
+                                    if item.HasPart('arm'):
+                                        if CanSee(item, victim):
+                                            item.time -= 10
+                                            item.speaking += 10
+                                            if CanSee(at, item):
+                                                if CanSee(at, victim):
+                                                    Message('BANG ' + item.Name() + ' shoots ' + victim.Name() + ' with finger gun!')
+                                                else:
+                                                    Message('BANG ' + item.Name() + ' fires finger gun!')
+                                    else:
+                                        taskf.append(ts)
+                            else:
+                                taskf.append(ts)
                         elif name == 'disappear':
                             countdown, turn0 = detail
                             if turn - turn0 > countdown:
@@ -4748,6 +5034,34 @@ while not tcod.console_is_window_closed():
                                 if answer:
                                     at.task.append(Task('answer', [answer, item]))
                                 taskf.append(ts)
+                        elif name == 'donttouchgate':
+                            sabotageur = detail
+                            if item.Say('don\'t touch that gate!', prompt=True):
+                                for ich in CanHearList(item):
+                                    if ich in item.room.site.citizen:
+                                        ich.attack = sabotageur
+                                taskf.append(ts)
+                        elif name == 'opengate':
+                            gateroom = detail
+                            d = Distance(item, gateroom.door)
+                            if d <= 0:
+                                item.Move(random.choice(gateroom.vectors))
+                            elif d <= 1:
+                                if item.HasPart('arm'):
+                                    gateroom.bmap[0][0] = 2
+                                    for room in gateroom.portal.keys():
+                                        u, v = room.portal[gateroom]
+                                        room.bmap[u][v] = 2
+                                    if CanSee(at, item):
+                                        Message(item.Name() + ' opens ' + gateroom.door.Name())
+                                    elif CanSee(at, gateroom.door):
+                                        text = gateroom.door.Name() + ' is opened'
+                                        Message(text)
+                                        Prompt(text)
+                                    item.time -= 10
+                                    taskf.append(ts)
+                            else:
+                                item.MoveTo(gateroom.door)
                         elif name == 'price':
                             good, buyer = detail
                             price = PRICE[good.tipo]
@@ -4973,7 +5287,6 @@ while not tcod.console_is_window_closed():
                                 item.time -= 10
                                 if CanSee(item, at):
                                     Message(item.Name() + ' turns around')
-
             ##Check if time is out of range
             if item.time > 0:
                 item.time = 0
@@ -5002,3 +5315,33 @@ while not tcod.console_is_window_closed():
                     item.poison[chem] += 5
             if item == at:
                 CheckChem()
+            ##Suffocate
+            if item.suffocate is not None:
+                if turn - item.suffocate > 50:
+                    die = True
+                    if item == at:
+                        tamarinned = False
+                        for ts in item.task:
+                            if ts.name == 'tamarinfavor':
+                                tamarinned = True
+                        if not tamarinned:
+                            tx = 'you hear a tamarin saying: O, ill-lucked traveller! I can save you.'
+                            Message(tx)
+                            Prompt(tx, refresh=False)
+                            selec = [('yes', 'y'), ('no', 'n')]
+                            choice = Menu('accept the aid?', selec, escapable=False)
+                            if choice == 'y':
+                                at.task.append(Task('tamarinfavor', None))
+                                br = at.fixedto
+                                br.looped = False
+                                for bd in br.bird:
+                                    if bd.fixedto == br:
+                                        bd.fixedto = None
+                                        Message(bd.Name() + ' falls down')
+                                        if bd.suffocate is not None:
+                                            bd.suffocate = None
+                                br.bird = []
+                                die = False
+                    if die:
+                        item.BreakLeg('body')
+                        item.suffocate = None
