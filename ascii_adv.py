@@ -137,6 +137,7 @@ MATERIAL = [
     'cotton',
     'leather',
     'stone',
+    'diamond',
     'animal']
 
 SOFTM = [
@@ -282,19 +283,24 @@ HUMANOID = HUMAN + DWARF + GNOME + GIANT
 
 ANIMATE = HUMANOID
 
-WEAPON = [
-    'sword',
-    'hammer',
-    'scimitar',
-    'dagger']
+CUTSDEEP = {
+    'axe': 20,
+    'pickaxe': 25}
 
-WEAPONC = [
+WEAPONSTAB = [
     'sword',
     'scimitar',
+    'pickaxe',
     'dagger']
 
-WEAPONB = [
+WEAPONBASH = [
     'hammer']
+
+WEAPONHACK = [
+    'axe',
+    'pickaxe']
+
+WEAPON = WEAPONSTAB + WEAPONBASH + WEAPONHACK
 
 SHIELD = [
     'shield',
@@ -318,125 +324,28 @@ BAG = [
     'scabbard',
     'sheath']
 
-CANTPICK = ANIMATE + FURNITURE
-CANTPICK += [
+MURAL = [
     'inscription',
+    'glisten']
+
+TREE = [
     'tree',
     'branch']
+
+CANTPICK = ANIMATE + FURNITURE + MURAL + TREE
 
 CURVED_WEAPON = [
     'scimitar']
 
-LENGTH = {
-    'door': 250,
-    'gate': 250,
-    'incensor': 100,
-    'table': 100,
-    'hook': 5,
-    'bell': 5,
-    'inscription': 10,
-    'adv': 170,
-    'shopkeeper': 170,
-    'guard': 170,
-    'guard1': 170,
-    'mayor': 170,
-    'smith': 170,
-    'cobbler': 170,
-    'alchemist': 170,
-    'goblin': 100,
-    'dwarf': 100,
-    'gnome': 60,
-    'ogre': 250,
-    'tree': 500,
-    'branch': 100,
-    'sword': 60,
-    'scimitar': 50,
-    'hammer': 30,
-    'dagger': 30,
-    'shield': 3,
-    'buckler': 3,
-    'potion': 10,
-    'key': 10,
-    'pouch': 15,
-    'scabbard': 65,
-    'sheath': 35,
-    'boot': 30,
-    'gold': 1}
-
-THICK = {
-    'door': 5,
-    'gate': 5,
-    'incensor': 30,  
-    'table': 60,
-    'hook': 5,
-    'bell': 5,
-    'inscription': 1,
-    'adv': 20,
-    'shopkeeper': 20,
-    'guard': 20,
-    'guard1': 20,
-    'mayor': 20,
-    'smith': 20,
-    'cobbler': 20,
-    'alchemist': 20,
-    'goblin': 15,
-    'dwarf': 20,
-    'gnome': 10,
-    'ogre': 50,
-    'tree': 50,
-    'branch': 10,
-    'sword': 1,
-    'scimitar': 1,
-    'hammer': 5,
-    'dagger': 1,
-    'shield': 90,
-    'buckler': 60,
-    'potion': 3,
-    'key': 1,
-    'pouch': 15,
-    'scabbard': 3,
-    'sheath': 3,
-    'boot': 30,
-    'gold': 1}
-
-WIDTH = {
-    'door': 100,
-    'gate': 100,
-    'incensor': 30,  
-    'table': 60,
-    'hook': 1,
-    'bell': 5,
-    'inscription': 10,
-    'adv': 60,
-    'shopkeeper': 60,
-    'guard': 60,
-    'guard1': 60,
-    'mayor': 60,
-    'smith': 60,
-    'cobbler': 60,
-    'alchemist': 60,
-    'goblin': 30,
-    'dwarf': 40,
-    'gnome': 20,
-    'ogre': 100,
-    'tree': 50,
-    'branch': 10,
-    'sword': 5,
-    'scimitar': 15,
-    'hammer': 15,
-    'dagger': 5,
-    'shield': 90,
-    'buckler': 60,
-    'potion': 3,
-    'key': 3,
-    'pouch': 15,
-    'scabbard': 12,
-    'sheath': 12,
-    'boot': 10,
-    'gold': 1}
 
 SMALL = [
     'gold']
+
+POUCHABLE = [
+    'gold',
+    'diamond',
+    'key',
+    'potion']
 
 def Coins(value):
     co = value // 100
@@ -444,77 +353,261 @@ def Coins(value):
         co += 1
     return co
 
-GLYPH = {
-    'door': '+',
-    'gate': '|+|',
-    'incensor': '<>', 
-    'table': '==',
-    'hook': '?',
-    'bell': ':',
-    'inscription': '...',
-    'sword': '/',
-    'scimitar': '/',
-    'hammer': '/',
-    'dagger': '/',
-    'shield': ']',
-    'buckler': ']',
-    'potion': '!',
-    'pouch': ')',
-    'scabbard': ')',
-    'sheath': ')',
-    'boot': ')',
-    'key': ':',
-    'shopkeeper': '@',
-    'guard': '@',
-    'guard1': '@',
-    'adv': '@',
-    'mayor': '@',
-    'smith': '@',
-    'cobbler': '@',
-    'alchemist': '@',
-    'goblin': 'g',
-    'gnome': 'gn',
-    'ogre': 'O',
-    'tree': 'T',
-    'branch': '/',
-    'gold': '$'}
-
-PRICE = {
-    'door': 100,
-    'incensor': 100, 
-    'table': 100, 
-    'sword': 500,
-    'scimitar': 500,
-    'hammer': 300,
-    'dagger': 200,
-    'shield': 300,
-    'buckler': 200,
-    'potion': 100,
-    'pouch': 100,
-    'scabbard': 100,
-    'sheath': 100,
-    'boot': 100,
-    'key': 100,
-    'shopkeeper': 100,
-    'guard': 100,
-    'adv': 100,
-    'mayor': 100,
-    'goblin': 100,
-    'gnome': 100,
-    'ogre': 100,
-    'gold': 100}
+TEMPLATE = {
+    'door': {
+        'le': 250,
+        'wi': 100,
+        'th': 5,
+        'pr': 1000,
+        'gl': '+'},
+    'gate': {
+        'le': 250,
+        'wi': 100,
+        'th': 5,
+        'pr': 1000,
+        'gl': '+'},
+    'incensor': {
+        'le': 100,
+        'wi': 30,
+        'th': 30,
+        'pr': 1000,
+        'gl': '<>'},
+    'table': {
+        'le': 100,
+        'wi': 60,
+        'th': 60,
+        'pr': 1000,
+        'gl': '=='},
+    'hook': {
+        'le': 5,
+        'wi': 1,
+        'th': 5,
+        'pr': 1000,
+        'gl': '?'},
+    'bell': {
+        'le': 5,
+        'wi': 5,
+        'th': 5,
+        'pr': 1000,
+        'gl': ':'},
+    'inscription': {
+        'le': 10,
+        'wi': 10,
+        'th': 1,
+        'pr': 1000,
+        'gl': '...'},
+    'glisten': {
+        'le': 10,
+        'wi': 10,
+        'th': 1,
+        'pr': 1000,
+        'gl': '...'},
+    'sword': {
+        'le': 60,
+        'wi': 5,
+        'th': 1,
+        'pr': 500,
+        'gl': '/'},
+    'scimitar': {
+        'le': 50,
+        'wi': 15,
+        'th': 1,
+        'pr': 500,
+        'gl': '/'},
+    'hammer': {
+        'le': 30,
+        'wi': 15,
+        'th': 5,
+        'pr': 400,
+        'gl': '/'},
+    'pickaxe': {
+        'le': 50,
+        'wi': 5,
+        'th': 50,
+        'pr': 500,
+        'gl': '/'},
+    'axe': {
+        'le': 60,
+        'wi': 5,
+        'th': 20,
+        'pr': 500,
+        'gl': '/'},
+    'dagger': {
+        'le': 30,
+        'wi': 5,
+        'th': 1,
+        'pr': 300,
+        'gl': '/'},
+    'shield': {
+        'le': 3,
+        'wi': 90,
+        'th': 90,
+        'pr': 500,
+        'gl': ']'},
+    'buckler': {
+        'le': 3,
+        'wi': 60,
+        'th': 60,
+        'pr': 400,
+        'gl': ']'},
+    'potion': {
+        'le': 10,
+        'wi': 3,
+        'th': 3,
+        'pr': 300,
+        'gl': '!'},
+    'pouch': {
+        'le': 15,
+        'wi': 3,
+        'th': 15,
+        'pr': 200,
+        'gl': ')'},
+    'scabbard': {
+        'le': 65,
+        'wi': 12,
+        'th': 3,
+        'pr': 400,
+        'gl': ')'},
+    'sheath': {
+        'le': 35,
+        'wi': 12,
+        'th': 3,
+        'pr': 300,
+        'gl': ')'},
+    'boot': {
+        'le': 30,
+        'wi': 10,
+        'th': 30,
+        'pr': 400,
+        'gl': ')'},
+    'key': {
+        'le': 10,
+        'wi': 3,
+        'th': 1,
+        'pr': 1000,
+        'gl': ':'},
+    'shopkeeper': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'guard': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'guard1': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'adv': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'mayor': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'smith': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'cobbler': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'alchemist': {
+        'le': 170,
+        'wi': 60,
+        'th': 20,
+        'pr': 1000,
+        'gl': '@'},
+    'goblin': {
+        'le': 100,
+        'wi': 30,
+        'th': 15,
+        'pr': 1000,
+        'gl': 'g'},
+    'dwarf': {
+        'le': 100,
+        'wi': 40,
+        'th': 20,
+        'pr': 1000,
+        'gl': 'h'},
+    'gnome': {
+        'le': 60,
+        'wi': 20,
+        'th': 10,
+        'pr': 1000,
+        'gl': 'gn'},
+    'ogre': {
+        'le': 250,
+        'wi': 100,
+        'th': 50,
+        'pr': 1000,
+        'gl': 'O'},
+    'tree': {
+        'le': 500,
+        'wi': 50,
+        'th': 50,
+        'pr': 1000,
+        'gl': 'T'},
+    'branch': {
+        'le': 100,
+        'wi': 10,
+        'th': 10,
+        'pr': 1000,
+        'gl': '/'},
+    'gold': {
+        'le': 1,
+        'wi': 1,
+        'th': 1,
+        'pr': 100,
+        'gl': '$'},
+    'diamond': {
+        'le': 1,
+        'wi': 1,
+        'th': 1,
+        'pr': 1000,
+        'gl': '*'}}
+    
 
 SHKSPELLEFF = [
     'burning coal rolling in',
     'ice boulders shattering in',
     'lava washing over',
-    'antelopes kicking',
+    'elephantelopes kicking',
     'chains lashing at',
     'crows pecking',
     'someone pinching',
     'someone squeezing',
     'someone stretching',
     'someone twisting']
+
+def Spelltx(castertype):
+    '''Only used when @ is attacked'''
+    text = random.choice(SHKSPELLEFF)
+    if castertype == 'dwarf':
+        text = 'lava washing over'
+    if text.startswith('antelopes') or text.startswith('chain'):
+        text = random.choice(METALM) + ' ' + text
+    elif text.startswith('lava'):
+        text = random.choice(['spiked', 'jagged', 'serrated']) + ' ' + text
+    text = 'you feel ' + text + ' your ' + random.choice(INNARD)
+
+    return text    
 
 INNARD = [
     'heart',
@@ -664,10 +757,12 @@ def DefaultStance(tipo):
 
 class Site:
     '''A site on worldmap'''
-    def __init__(self, x, y, name=None, natfl='GRAVEL', walltype='stone wall'):
+    def __init__(self, x, y, tipht=0, wallht=0, name=None, natfl='GRAVEL', walltype='stone wall'):
 
         self.x = x
         self.y = y
+        self.tipht = tipht
+        self.wallht = wallht
         self.name = name
         self.natfl = natfl  ##Natural floor
         self.walltype = walltype
@@ -806,11 +901,11 @@ class Door:
         self.doortype = doortype
         self.ceiling = True
         if flomat is None:
-            self.flomat = site.natfl
+            self.flomat = room0.flomat
         else:
             self.flomat = flomat
         if wlmat is None:
-            self.wlmat = self.site.walltype
+            self.wlmat = room0.wlmat
         else:
             self.wlmat = wlmat
         self.item_list = []
@@ -857,9 +952,10 @@ class Item:
     def __init__(
         self, tipo, x, y, room, name=None, names=None, material=None,
         dodge_sk=10, fight_sk=10,
-        facing='N',
+        facing=None,
         eqstyle = None,
         flask=None, lock=None, key_to=None, bag=False, ins=None, tree=None,
+        ore=None, cutsdeep = 0,
         owner=None, shk=False):
 
         self.tipo=tipo
@@ -929,16 +1025,19 @@ class Item:
         self.attack = None
         self.attacksp = None
         self.tls = None  ##Target last seen
-        self.facing = facing
+        if facing is None:
+            self.facing = random.choice(NESW)
+        else:
+            self.facing = facing
         self.defaultstance = DefaultStance(tipo)
         self.stance = self.defaultstance
         self.display_move = False
         self.dismovg = '>'  ##glyph for display_move
         self.balance = 0
         self.blocking = {}
-        self.length = LENGTH[tipo]
-        self.thick = THICK[tipo]
-        self.width = WIDTH[tipo]
+        self.length = TEMPLATE[tipo]['le']
+        self.thick = TEMPLATE[tipo]['th']
+        self.width = TEMPLATE[tipo]['wi']
         if self.tipo in HUMANOID:
             self.body = {
                 'head': 1,
@@ -948,13 +1047,13 @@ class Item:
                 'leg0': 1,
                 'leg1': 1}
             for part, hp in self.body.items():
-                self.body[part] = hp * THICK[tipo]
+                self.body[part] = hp * TEMPLATE[tipo]['th']
         else:
             self.body = {
                 'body': self.thick}
         if self.tipo == 'tree':
             self.branch = []
-            for i in range(3):
+            for i in range(random.randint(3, 5)):
                 self.branch.append(Item('branch', self.x, self.y, self.room, tree=self))
         self.maxhp = copy.copy(self.body)
 
@@ -979,6 +1078,8 @@ class Item:
                     eqstyle = 'melee_s'
                 elif self.tipo in ['gnome', 'ogre']:
                     eqstyle = 'wild'
+                elif self.tipo == 'dwarf':
+                    eqstyle = 'dwarf'
                 else:
                     eqstyle = 'civilian'
         if eqstyle is not None:
@@ -1021,6 +1122,13 @@ class Item:
                     dg = Item('dagger', self.x, self.y, self.room)
                     sc.bag.append(dg)
                     self.inv.append(dg)
+            elif eqstyle == 'dwarf':
+                    po = Item('pouch', self.x, self.y, self.room)
+                    self.wear.append(po)
+                    self.inv.append(po)
+                    ax = Item('axe', self.x, self.y, self.room)
+                    self.wield[1] = ax
+                    self.inv.append(ax)
             elif eqstyle == 'wild':
                 pass
         if bag:
@@ -1044,12 +1152,17 @@ class Item:
         else:
             self.lock = None
             self.locked = False
-        if key_to:
-            self.key_to = key_to
+        self.cutsdeep = cutsdeep
+        if tipo in WEAPONHACK:
+            self.cutsdeep = CUTSDEEP[tipo]
+        self.key_to = key_to
         self.ins = ins
         self.tree = tree
         self.bird = []
         self.looped = False
+        self.ore = ore
+        if ore is not None:
+            self.minecounter = 3
 
         self.poison = {}
         self.epoi = []  ##Effects of poison
@@ -1057,6 +1170,7 @@ class Item:
         self.speaking = 0
         self.order = []
         self.shk = shk
+
         self.task = []
         if self.anim:
             self.task.append(Task('manage inv', None))
@@ -1068,7 +1182,11 @@ class Item:
             self.task.append(Task('gnome guard', None))
         if tipo == 'mayor':
             self.task.append(Task('assassin alert', None))
+        if tipo == 'dwarf':
+            self.task.append(Task('diamwatch', []))
+            
         self.owner = owner
+
         if tipo in ANIMATE:
             if isinstance(room, Room) or isinstance(room, Door):
                 self.room.site.citizen.append(self)
@@ -1252,31 +1370,41 @@ class Item:
                     ##Stuck in wall(room). Go to another Field. Go beyond the range(but still on the same field).
                     else:
                         if isinstance(self.room, Field):
-                            sx = self.room.site.x
-                            sy = self.room.site.y
-                            sx1 = sx + dx
-                            sy1 = sy + dy
-                            newst = None
-                            for st in worldmap:
-                                if sx1 == st.x and sy1 == st.y:
-                                    newst = st
-                            if newst is None:
-                                newst = Site(sx1, sy1)
-                            self.room.item_list.remove(self)
-                            self.room = newst.room_list[0]
-                            if x1 < 0:
-                                x1 = 399
-                            elif x1 >= self.room.x:
-                                x1 = 0
-                            if y1 < 0:
-                                y1 = 399
-                            elif y1 >= self.room.x:
-                                y1 = 0
-                            self.x = x1
-                            self.y = y1
-                            self.room.item_list.append(self)
-                            self.MoveInv()
-                            result = 'CAN_PASS'
+                            followed = False
+                            for ir in self.room.item_list:
+                                if ir.attack == self and Distance(ir, self) <= 30:
+                                    followed = True
+                                    break
+                            if followed:
+                                ##Hits the edge of field when being followed
+                                self.facing = random.choice(NESW)
+                                result = 'CAN_PASS'
+                            else:
+                                sx = self.room.site.x
+                                sy = self.room.site.y
+                                sx1 = sx + dx
+                                sy1 = sy + dy
+                                newst = None
+                                for st in worldmap:
+                                    if sx1 == st.x and sy1 == st.y:
+                                        newst = st
+                                if newst is None:
+                                    newst = Site(sx1, sy1)
+                                self.room.item_list.remove(self)
+                                self.room = newst.room_list[0]
+                                if x1 < 0:
+                                    x1 = 399
+                                elif x1 >= self.room.x:
+                                    x1 = 0
+                                if y1 < 0:
+                                    y1 = 399
+                                elif y1 >= self.room.x:
+                                    y1 = 0
+                                self.x = x1
+                                self.y = y1
+                                self.room.item_list.append(self)
+                                self.MoveInv()
+                                result = 'CAN_PASS'
                         else:
                             result = 'BLOCKED'
                 ##Door                        
@@ -1702,7 +1830,7 @@ class Item:
                             if CanSee(self, at):
                                 Message(self.name + ' ' + verb + ' at ' + target.name + ' but the attack is blocked by the ' + shield.name)
                             is_blocked = True
-                            if verb == 'punches' and shield.tipo in WEAPONC:
+                            if verb == 'punches' and shield.tipo in WEAPONSTAB:
                                 for ar, hp in self.body.items():
                                     if ar.startswith('arm'):
                                         if hp >  0:
@@ -1710,7 +1838,7 @@ class Item:
                                             if self.body[ar] <= 0:
                                                 self.BreakLeg(ar)
                                             break
-                            elif verb == 'kicks' and shield.tipo in WEAPONC:
+                            elif verb == 'kicks' and shield.tipo in WEAPONSTAB:
                                 for lg, hp in self.body.items():
                                     if lg.startswith('leg'):
                                         if hp >  0:
@@ -1820,10 +1948,12 @@ def WeaponDam(weapon, attacker):
         d = random.randint(0, 2) * force
     elif weapon.tipo in WEAPON:
         d = random.randint(0, 2) * force
-        if weapon.tipo in WEAPONC:
+        if weapon.tipo in WEAPONSTAB:
             d += random.randint(1, weapon.length)
-        elif weapon.tipo in WEAPONB:
+        elif weapon.tipo in WEAPONBASH:
             d += random.randint(1, 5) * force
+        elif weapon.tipo in WEAPONHACK:
+            d += random.randint(1, weapon.cutsdeep)
     else:
         d = random.randint(0, 1) * force
     return d
@@ -2240,30 +2370,42 @@ def Use():
     refresh = True
     ##Write the choices
     for item in FreeSt(rider=True):        
-        if item != at and Distance(at, item) == 0:
-            if item.tipo not in CANTPICK:
-                ##Pick up
-                text = 'pick up ' + NameSco(item)
-                for o in at.order:
-                    if o.status == 'WAITING FOR PICKUP' and o.good == item:
-                        text += '    BOUGHT'
-                selec.append([text, ('p', item)])
-            else:
-                if item.tipo == 'bell':
-                    ##Bell
-                    selec.append(['pull bell string', ('pbs', item)])
-                elif item.tipo == 'branch' and 'banyan' in item.name:
-                    if item.looped:
-                        selec.append(['untie banyan vine loop', ('utbnlp', item)])
-                        if not item.bird:
-                            selec.append(['put banyan vine loop around neck', ('hang', item)])
-                    else:
-                        selec.append(['tie banyan vine into a loop', ('bnlp', item)])
-        ##Trade
-        if at.speaking <= 0 and item != at and item.shk:
-            d = '    ' + NESWtoFRBL(at.facing, Direction(at, item, dn='cardinal'))
-            selec.append(['trade with ' + item.name + d, ('t', item)])
-            refresh = False
+        if item != at:
+            dis = Distance(at, item)
+            if dis <= 0:
+                if item.tipo not in CANTPICK:
+                    ##Pick up
+                    text = 'pick up ' + NameSco(item)
+                    for o in at.order:
+                        if o.status == 'WAITING FOR PICKUP' and o.good == item:
+                            text += '    BOUGHT'
+                    selec.append([text, ('p', item)])
+                else:
+                    if item.tipo == 'bell':
+                        ##Bell
+                        selec.append(['pull bell string', ('pbs', item)])
+                    elif item.tipo == 'branch' and 'banyan' in item.name:
+                        if item.looped:
+                            selec.append(['untie banyan vine loop', ('utbnlp', item)])
+                            if not item.bird:
+                                selec.append(['put banyan vine loop around neck', ('hang', item)])
+                        else:
+                            selec.append(['tie banyan vine into a loop', ('bnlp', item)])
+            elif dis <= 1:
+                if item.tipo == 'glisten':
+                    haspick = False
+                    for w in at.wield:
+                        if isinstance(w, Item) and w.tipo == 'pickaxe':
+                            haspick = w
+                            break
+                    if haspick:
+                        d = NESWtoFRBL(at.facing, Direction(at, item, dn='cardinal'))
+                        selec.append(['mine     ' + d, ('mine', (item, w))])
+            ##Trade
+            if at.speaking <= 0 and item.shk:
+                d = '    ' + NESWtoFRBL(at.facing, Direction(at, item, dn='cardinal'))
+                selec.append(['trade with ' + item.name + d, ('t', item)])
+                refresh = False
     ##Open or close door
     if isinstance(at.room, Room) or isinstance(at.room, Field):
         for door, coordinate in at.room.portal.items():
@@ -2325,7 +2467,9 @@ def Use():
                 ##Bell
                 elif action == 'pbs':
                     if at.HasPart('arm'):
-                        Message(at.Name() + ' pulls the string')
+                        text = at.Name() + ' pulls the string'
+                        Message(text)
+                        Prompt(text, refresh=False)
                         text = 'ding ding ding'
                         Message(text)
                         Prompt(text)
@@ -2362,6 +2506,22 @@ def Use():
                     Prompt('banyan vine loop tightens!')
                     at.suffocate = turn
                     at.time -= 10
+                elif action == 'mine':
+                    ore, ax = obj
+                    Message('DING')
+                    Message(at.Name() + ' swings ' + ax.Name())
+                    if random.randint(0, 1):
+                        ore.minecounter -= 1
+                        if ore.minecounter <= 0:
+                            Message('diamond!')
+                            diax, diay, diar = WallSpill(ore.x, ore.y, ore.room)
+                            diamond = Item('diamond', diax, diay, diar)
+                            cur_item_list.append(diamond)
+                            ore.room.item_list.remove(ore)
+                            if autoscope == ore:
+                                autoscope == None
+                            cur_item_list.remove(ore)                            
+                    at.time -= 10
                 ##Another menu for trading
                 elif action == 't':
                     selec = []
@@ -2372,7 +2532,7 @@ def Use():
                                 ordered = True
                                 break
                         if not ordered:
-                            estmtxt = 'about ' + str(Coins(PRICE[item.tipo])) + ' gold    '
+                            estmtxt = 'about ' + str(Coins(TEMPLATE[item.tipo]['pr'])) + ' gold    '
                             selec.append([estmtxt + NameSco(item), item])
                     if selec:
                         chosen = Menu('ask the price of', selec, refresh=False)
@@ -2593,31 +2753,36 @@ def Give():
     return has_given
 
 def Pouch():
-    coin = None
+    storesmall = None
     for w in at.wield:
         if isinstance(w, list):
             for w1 in w:
                 if w1.tipo == 'gold':
-                    coin = w1
+                    storesmall = w1
                     break
         elif w is not None:
-            if w.tipo == 'gold':
-                coin = w
+            if w.tipo in POUCHABLE and w.owner is None:
+                storesmall = w
                 break
-    if coin:
-        for w in at.wear:
-            if w.tipo == 'pouch':
-                at.TakeOff(coin)
-                w.bag.append(coin)
-                Message(at.Name() + ' puts ' + coin.Name() + ' into ' + NameSco(w))
-                at.time -= 10
-                break
+    if storesmall:
+        pouch = []
+        for ati in at.inv:
+            if ati.tipo == 'pouch':
+                pouch.append(ati)
+        if pouch:
+            for po in pouch:
+                if CanHold(storesmall, po):
+                    at.TakeOff(storesmall)
+                    po.bag.append(storesmall)
+                    Message(at.Name() + ' puts ' + storesmall.Name() + ' into ' + NameSco(po))
+                    at.time -= 10
+                    break
     else:
-        coins = []
+        smalls = []
         for ics in CanSeeList(at):
-            if ics.tipo == 'gold' and Distance(ics, at) == 0 and ics not in at.inv:
-                coins.append(ics)
-        if coins:
+            if ics.tipo in POUCHABLE and Distance(ics, at) == 0 and ics not in at.inv:
+                smalls.append(ics)
+        if smalls:
             has_hand = False
             free_hand = False
             for part, hp in at.body.items():
@@ -2625,21 +2790,74 @@ def Pouch():
                     has_hand = True
                     i = int(part[-1])
                     if at.wield[i] is None:
-                        at.wield[i] = []
+                        if smalls[0].tipo == 'gold':
+                            at.wield[i] = []
                         free_hand = True
                         text = ''
-                        for coin in coins:
-                            at.inv.append(coin)
+                        for small in smalls:
+                            at.inv.append(small)
                             at.MoveInv()
-                            at.wield[i].append(coin)
-                            text += coin.Name() + ' '
+                            text += small.Name() + ' '
+                            if small.tipo == 'gold':
+                                at.wield[i].append(small)
+                            else:
+                                at.wield[i] = small
+                                break
+                            if len(at.wield[i]) >= 10:
+                                break
                         Message(at.Name() + ' picks up ' + text)
                         at.time -= 15
                         break
             if not has_hand:
                 Message('you have no hand')
             elif not free_hand:
-                Message('your hands are full')                                
+                Message('your hands are full')
+
+def Depouch():
+    '''Wield gold coins'''
+    if not at.HasPart('arm'):
+        Message('you have no hand')
+    else:
+        emptyhand = None
+        oneinhand = None
+        halfemptyhand = None
+        for w in at.wield:
+            if w is None:
+                emptyhand = at.wield.index(w)
+                break
+            elif isinstance(w, Item) and w.tipo == 'gold':
+                oneinhand = at.wield.index(w)
+                break
+            elif isinstance(w, list) and w and w[0].tipo == 'gold' and len(w) <= 10:
+                halfemptyhand = at.wield.index(w)
+                break
+        if emptyhand is None and oneinhand is None and halfemptyhand is None:
+            Message('your hands are full')
+        elif halfemptyhand is not None:
+            for i in at.inv:
+                if i.tipo == 'gold' and i not in at.wield[halfemptyhand]:
+                    at.TakeOff(i)
+                    at.wield[halfemptyhand].append(i)
+                    Message(at.Name() + ' wields ' + i.Name())
+                    at.time -= 10
+                    break
+        elif oneinhand is not None:
+            for i in at.inv:
+                if i.tipo == 'gold' and i != at.wield[oneinhand]:
+                    at.TakeOff(i)
+                    onecoin = at.wield[oneinhand]
+                    at.wield[oneinhand] = [onecoin, i]
+                    Message(at.Name() + ' wields ' + i.Name())
+                    at.time -= 10
+                    break
+        elif emptyhand is not None:
+            for i in at.inv:
+                if i.tipo == 'gold':
+                    at.TakeOff(i)
+                    at.wield[emptyhand] = i
+                    Message(at.Name() + ' wields ' + i.Name())
+                    at.time -= 10
+                    break
 
 def WIH(item):
     '''Is item weapon in hand'''
@@ -2651,7 +2869,10 @@ def CarryArm(a):
     for w in a.wield:
         if WIH(w) and w.tipo in WEAPON:
             armed = True
-            break
+            if a.room.site == hill and w.tipo == 'pickaxe':
+                armed = False
+            if armed == True:
+                break
     return armed
 
 def BagSpace(item, depth):
@@ -3352,6 +3573,7 @@ KEY_DICT = {
     'g': 'GIVE',
     'w': 'WIELD',
     'm': 'POUCH',
+    'G': 'DEPOUCH',
     'M': 'MAP',
     '?': 'HELP',
     'ESC': 'EXIT'}
@@ -3429,20 +3651,20 @@ def Glyph(item):
                 else:
                     glyph += 'l'
         elif hasattr(item, 'finvt'):
-            glyph = GLYPH[item.tipo]
+            glyph = TEMPLATE[item.tipo]['gl']
             for item1 in item.finvt:
                 if item1.tipo == 'gold' and '$' in text:
                     pass
                 else:
-                    glyph += GLYPH[item1.tipo]
+                    glyph += TEMPLATE[item1.tipo]['gl']
         else:
-            glyph = GLYPH[item.tipo]
+            glyph = TEMPLATE[item.tipo]['gl']
             if hasattr(item, 'wield'):
                 for weapon in item.wield:
                     if weapon is not None:
                         if isinstance(weapon, list):
                             weapon = weapon[0]
-                        glyph += GLYPH[weapon.tipo]
+                        glyph += TEMPLATE[weapon.tipo]['gl']
             if item.tipo in SHEATH:
                 for ibg in item.bag:
                     if ibg.tipo in WEAPON:
@@ -3451,7 +3673,7 @@ def Glyph(item):
             if item.tipo == 'tree':
                 for br in item.branch:
                     for bd in br.bird:
-                        glyph += GLYPH[bd.tipo]
+                        glyph += TEMPLATE[bd.tipo]['gl']
     elif isinstance(item, AOE):
         glyph = '~ ~ ~'
     return glyph
@@ -3675,9 +3897,10 @@ def FourViews():
     pymarg = FOUR_VIEWS_PNL_HT // 20
     ystep = 3
     crowded = False
-    for d in CARDINAL4:
-        if len(direction_item_dict) > FOUR_VIEWS_PNL_HT // 6:
+    for d, lst in direction_item_dict.items():
+        if len(lst) > FOUR_VIEWS_PNL_HT // 10:
             crowded = True
+            pxmarg = FOUR_VIEWS_PNL_WD // 80
             pymarg = FOUR_VIEWS_PNL_HT // 40
             ystep = 2
             break
@@ -3712,6 +3935,8 @@ def FourViews():
                 textw = ('/'*wallwd+'\n')*2 + '\n'
                 xmarg = pxmarg
                 ymarg = pymarg
+                xmarg = max(1, xmarg)
+                ymarg = max(1, ymarg)
                 if d == 'F':
                     tcod.console_print_ex(
                         four_views_pnl, p-wallwd-xmarg, y-ymarg,
@@ -3740,7 +3965,7 @@ def FourViews():
         y = y1
         for i in direction_item_dict[d]:
             dis = item_distance_dict[i]
-            if i.tipo in DOOR+['inscription'] and dis == 1:
+            if i.tipo in DOOR+MURAL and dis == 1:
                 distx = '///'
             else:
                 distx = str(dis) + 'm'
@@ -3814,6 +4039,7 @@ def FourViews():
                 y1 = y+ymarg
                 x1 = p-xmarg
         ##Wall
+        dfw = None
         if not doorframe:
             textw = ''
             to = FRBLtoNESW(at.facing, d)
@@ -3899,31 +4125,36 @@ def FourViews():
                 ymarg = 4
                 y = y1
             for i in direction_site_dict[d]:
-                tx = i.name
-                if d == 'F':
-                    tcod.console_print_ex(
-                        four_views_pnl, p-len(tx)-xmarg, y-ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        '^_  '+tx)
-                    y -= ystep
-                elif d == 'R':
-                    tcod.console_print_ex(
-                        four_views_pnl, p+xmarg, y-ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        tx+'  _^')
-                    y -= ystep
-                elif d == 'B':
-                    tcod.console_print_ex(
-                        four_views_pnl, p+xmarg, y+ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        tx+'  _^')
-                    y += ystep
-                else:
-                    tcod.console_print_ex(
-                        four_views_pnl, p-len(tx)-xmarg, y+ymarg,
-                        tcod.BKGND_NONE, tcod.LEFT,
-                        '^_  '+tx)
-                    y += ystep
+                cansee = True
+                if isinstance(dfw, int):
+                    if at.room.site.wallht * 20 >= i.tipht:
+                        cansee = False
+                if cansee:
+                    tx = i.name
+                    if d == 'F':
+                        tcod.console_print_ex(
+                            four_views_pnl, p-len(tx)-xmarg, y-ymarg,
+                            tcod.BKGND_NONE, tcod.LEFT,
+                            '^_  '+tx)
+                        y -= ystep
+                    elif d == 'R':
+                        tcod.console_print_ex(
+                            four_views_pnl, p+xmarg, y-ymarg,
+                            tcod.BKGND_NONE, tcod.LEFT,
+                            tx+'  _^')
+                        y -= ystep
+                    elif d == 'B':
+                        tcod.console_print_ex(
+                            four_views_pnl, p+xmarg, y+ymarg,
+                            tcod.BKGND_NONE, tcod.LEFT,
+                            tx+'  _^')
+                        y += ystep
+                    else:
+                        tcod.console_print_ex(
+                            four_views_pnl, p-len(tx)-xmarg, y+ymarg,
+                            tcod.BKGND_NONE, tcod.LEFT,
+                            '^_  '+tx)
+                        y += ystep
         
     tcod.console_blit(
         four_views_pnl, 0, 0,
@@ -4180,13 +4411,12 @@ def Debug():
             wield += str(weapon)
         else:
             wield += 'None'
-##    for i in cur_item_list:
-##        if i.tipo == 'guard':
-##            gu = i
-##            break
-##    gutask = ''
-##    for ts in gu.task:
-##        gutask += ts.name
+    diatx = ''
+    for i in cur_item_list:
+        if i.tipo == 'diamond':
+            dia = i
+            diatx = str(dia.x) + ' ' + str(dia.y) + ' ' + str(dia.room) + '\n'
+            break
     text = (
         '@ ' + str(at.x) + ' ' + str(at.y) + ' ' + str(at.room) + '\n'
         + str(at.body) + '\n'
@@ -4196,7 +4426,6 @@ def Debug():
         + 'facing ' + at.facing + '\n'
         + str(at.poison) + '\n'
         + wield + '\n'
-        + str(Clock()) + str(moonph) + '\n'
         + roomitem + '\n')
     
     tcod.console_print_ex(
@@ -4237,8 +4466,9 @@ KEY BINDING
     v    VIEW ITEM, MONSTER, FURNITURE...
     p    SHOPPING CART
     g    GIVE
+    G    TAKE OUT GOLD COINS
     w    WIELD/SHEATHE
-    m    COLLECT/STORE GOLD COINS
+    m    AUTOPICKUP/AUTOSTORE
     M    MAP
     ?    HELP
     ESC  EXIT
@@ -4361,6 +4591,9 @@ RANDOMSHOP = [
     'smith',
     'cobbler',
     'gnome']
+WEAPONSHOP = [
+    'smith',
+    'mineshop']
 
 SHOPDOOR = {
     'mayor': 'MAYOR\'S OFFICE',
@@ -4458,15 +4691,49 @@ def NxDoor(portal, room, pair=False):
             pos = random.choice(p2)
     return pos
 
+def WallSpill(x, y, room):
+    '''Only used in mining'''
+    r1 = room
+    for i in range(100):
+        u = random.randint(-1, 1)
+        v = random.randint(-1, 1)
+        x1 = x + u
+        y1 = y + v
+        if 0 <= x1 <= room.x-1 and 0 <= y1 <= room.y-1:
+            if room.bmap[x1][y1] == 0:
+                break
+            elif room.bmap[x1][y1] == 2:
+                for po, coordinate in room.portal.items():
+                    m, n = coordinate
+                    if x1 == m and y1 == n:
+                        r1 = po
+                        break
+                break
+    return (x1, y1, r1)
+
+def NewDoor(room, doormarg=5, side=None):
+    x = 0
+    y = 1
+    for i in range(1000):
+        if side is None:
+            side = random.randint(0, 3)
+        x, y = Siding(side, room.x, room.y)
+        for po, coordinate in room.portal.items():
+            u, v = coordinate
+            if max(abs(x-u), abs(y-v)) > doormarg:
+                break
+    return (x, y)
+
+
 CITYGATEXY = [(200, 299), (299, 200), (200, 100), (100, 200)]
 
 INS = {
-    'ogre': [['O G R E ', 'M A N', 'G I A N T'], ['of W I L D', 'of M O U N T A I N']],
+    'ogre': [['O G R E', 'M A N', 'G I A N T'], ['of W I L D', 'of M O U N T A I N']],
     '2fish': [['D I P E S K S', 'D I P E S C S']],
     'wolf': [['L I', 'L U', 'L Y'], ['C O D O M I']],
-    'ao': [['A >P< W']],
+    'ao': [['A >P< UU']],
     'adek': [['A A E K A T OIK E I']],
-    '3crows': [['I A T L P S', 'C A M cp I O X W']]}
+    '3crows': [['I A T L P S', 'C A M cp I O X UU']]}
 
 INSPIC = {
     'ogre': ['broad humanoid', 'muscular humanoid', 'menacing humanoid'],
@@ -4487,11 +4754,10 @@ def Ins(motif):
     return ins
     
 def MakeTown(roomnum=3):
-    town = Site(2, 2, 'Town', natfl='GRAVEL')
+    town = Site(2, 2, tipht=500, wallht=300, name='Town', natfl='GRAVEL')
     field = town.room_list[0]
     short, long = TOWN_SIZE
     townsq = Room(short, long, town, ceiling=False)  ##Town square
-    tree = Item('tree', 50, 50, field, name='large banyan tree')
     side = random.randint(0, 3)
     for n in random.choice(TWINNAMES):
         xgb, ygb = Siding(side, townsq.x, townsq.y, drift=True, edgible=False)
@@ -4500,6 +4766,12 @@ def MakeTown(roomnum=3):
     x0, y0 = Siding(side, townsq.x, townsq.y, middle=True)
     x1, y1 = CITYGATEXY[side]
     gate = Door(townsq, x0, y0, field, x1, y1, doortype='gate', closed=False, name1='CITY OF ZIUMNI', flomat='STONE FLOOR')
+    ##This is after the gate as the gate builds the town
+    for i in range(1000):
+        xtr, ytr = Siding(side, field.x, field.y, drift=True, edgible=False)
+        if field.bmap[xtr][ytr] == 0:
+            break
+    tree = Item('tree', xtr, ytr, field, name='large banyan tree')
     fa = SIDE_COMPASS[side]
     g0x, g0y, g1x, g1y = NxDoor(gate, field, pair=True)
     g0 = Item('guard', g0x, g0y, field, facing=fa)
@@ -4550,7 +4822,7 @@ def MakeTown(roomnum=3):
             table = Item('table', x, y, room, name='table')
             if sh == 'smith':
                 for i in range(random.randint(5, 8)):
-                    wptype = random.choice(WEAPONC)
+                    wptype = random.choice(WEAPONSTAB)
                     wp = Item(wptype, table.x, table.y, table.room)
                     table.finvt.append(wp)
                 for i in range(random.randint(3, 5)):
@@ -4605,26 +4877,31 @@ def MakeTown(roomnum=3):
 
     for instype in ['ogre']+[random.choice(list(INS.keys()))]:
         side = random.randint(0, 3)
-        count = 0
-        while True:
-            count += 1
+        for i in range(1000):
             insx, insy = Siding(side, townsq.x, townsq.y)
             if townsq.bmap[insx][insy] == 1:
-                break
-            if count > 100:
                 break
         Item('inscription', insx, insy, townsq, ins=Ins(instype))
 
     return town
 
 def MakeCave():
-    mountain = Site(0, 0, 'Snow capped mountain', natfl='SNOW', walltype='rock slope')
+    mountain = Site(0, 0, tipht=20000, wallht=20000, name='Snow capped mountain', natfl='SNOW', walltype='rock slope')
+
     field = mountain.room_list[0]
-    cave = Room(30, 30, mountain, flomat='STONE FLOOR', wlmat='ROCK WALL')
+    cave = Room(30, 30, mountain, flomat='STONE FLOOR', wlmat='ROCK WALL')    
     side = random.randint(0, 3)
     x0, y0 = Siding(side, cave.x, cave.y, middle=True)
     x1, y1 = CITYGATEXY[side]
     caveentry = Door(cave, x0, y0, field, x1, y1, closed=False, flomat='STONE FLOOR')
+    
+    ##This is after the cave entry as the cave entry builds the mountain
+    for i in range(1000):
+        xtr, ytr = Siding(side, field.x, field.y, drift=True, edgible=False)
+        if field.bmap[xtr][ytr] == 0:
+            break
+    tree = Item('tree', xtr, ytr, field, name='broccoli')
+    
     fa = SIDE_COMPASS[side]
     xog, yog = Siding(ReverseSide(side), cave.x, cave.y, drift=True, edgible=False)
     ogre = Item('ogre', xog, yog, cave, facing=fa)
@@ -4634,6 +4911,83 @@ def MakeCave():
 
     return mountain
 
+def MakeHill():
+    hill = Site(2, 4, tipht=2000, wallht=2000, name='Stout hill', walltype='rock slope')
+
+    field = hill.room_list[0]
+    antechamber = Room(30, 30, hill, flomat='STONE FLOOR', wlmat='ROCK WALL')
+    side = random.randint(0, 3)
+    x0, y0 = Siding(side, antechamber.x, antechamber.y, middle=True)
+    x1, y1 = CITYGATEXY[side]
+    caveentry = Door(antechamber, x0, y0, field, x1, y1, closed=False, flomat='STONE FLOOR')
+    gx, gy = Siding(ReverseSide(side), antechamber.x, antechamber.y, drift=True, edgible=False)
+    dwdg = Item('dwarf', gx, gy, antechamber, facing=SIDE_COMPASS[side])
+
+    for i in range(1000):
+        xgo, ygo = Siding(side, field.x, field.y, drift=True, edgible=False)
+        if field.bmap[xgo][ygo] == 0:
+            break
+    for i in range(random.randint(8, 10)):
+        Item('gold', xgo, ygo, field, name='gold coin')
+    
+    for i in range(random.randint(5, 7)):
+        side = random.randint(0, 3)
+        rm0 = hill.room_list[-2]
+        x0, y0 = NewDoor(rm0, side=side)
+        rx = random.randint(20, 30)
+        ry = random.randint(20, 30)
+        rm1 = Room(rx, ry, hill, flomat='STONE FLOOR', wlmat='ROCK WALL')
+        x1, y1 = NewDoor(rm1, side=ReverseSide(side))
+        door = Door(rm0, x0, y0, rm1, x1, y1, closed=False)
+        rm0 = None
+        rm1 = None
+
+    ##FieldRoomDoorRoomDoorRoomDoor...
+    ind = random.randint(2, 3)
+    ind = -ind * 2
+    mineshop = hill.room_list[ind]
+    mineshop.name = 'mineshop'
+    x0, y0 = NewDoor(mineshop, side=side)
+    rx = random.randint(20, 30)
+    ry = random.randint(20, 30)
+    rm1 = Room(rx, ry, hill, flomat='STONE FLOOR', wlmat='ROCK WALL')
+    rm1.name = 'branchroom'
+    x1, y1 = NewDoor(rm1, side=ReverseSide(side))
+    door = Door(mineshop, x0, y0, rm1, x1, y1, closed=False)
+    rm0 = None
+    rm1 = None
+
+    for i in range(random.randint(2, 3)):
+        side = random.randint(0, 3)
+        rm0 = hill.room_list[-2]
+        x0, y0 = NewDoor(rm0, side=side)
+        rx = random.randint(20, 30)
+        ry = random.randint(20, 30)
+        rm1 = Room(rx, ry, hill, flomat='STONE FLOOR', wlmat='ROCK WALL')
+        x1, y1 = NewDoor(rm1, side=ReverseSide(side))
+        door = Door(rm0, x0, y0, rm1, x1, y1, closed=False)
+        rm0 = None
+        rm1 = None
+
+    tabx, taby = Siding(random.randint(0, 3), mineshop.x, mineshop.y, drift=True, edgible=False)
+    table = Item('table', tabx, taby, mineshop)
+    for i in range(random.randint(2, 6)):
+        pk = Item('pickaxe', table.x, table.y, table.room)
+        table.finvt.append(pk)
+    oocx, occy = Siding(random.randint(0, 3), mineshop.x, mineshop.y, drift=True, edgible=False)
+    occ = Item('dwarf', oocx, occy, mineshop, shk=mineshop)
+    occ.stock = copy.copy(table.finvt)
+    for st in occ.stock:
+        st.owner = occ
+
+    
+    end = hill.room_list[-2]
+    end.name = 'end'
+    gx, gy = NewDoor(end)
+    Item('glisten', gx, gy, end, ore='diamond')
+
+    return hill            
+    
 Intro()
 
 #Initialize
@@ -4646,7 +5000,7 @@ worldmap = []
 town = MakeTown()
 ##tower = Site(100, 98, 'Tower')
 mountain = MakeCave()
-
+hill = MakeHill()
 CITYPLACE = (15, 24, 15, 18)
 wmapsite = {}
 for st in worldmap:
@@ -4665,12 +5019,13 @@ for st in worldmap:
                 break
         wmapsite[st] = (x, y)
 
-for r in town.room_list:
-    if r.name == 'smith':
+for r in hill.room_list:
+    if r.name == 'mineshop':
         rat = r
 atx = random.randint(70, 90)
 aty = random.randint(70, 90)
 at = Item('adv', atx, aty, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
+##Item('diamond', at.x, at.y, at.room)
 ##for i in range(10):
 ##    Item('gold', at.x, at.y, at.room, name='gold coin')
 at.skill['fight'] = 1
@@ -4821,6 +5176,8 @@ while not tcod.console_is_window_closed():
                 Give()
             elif command == 'POUCH':
                 Pouch()
+            elif command == 'DEPOUCH':
+                Depouch()
             elif command == 'WIELD':
                 Wield()
     for item in cur_item_list:
@@ -4920,9 +5277,11 @@ while not tcod.console_is_window_closed():
                                             item.speaking += 10
                                             if CanSee(at, item):
                                                 if CanSee(at, victim):
-                                                    Message('BANG ' + item.Name() + ' shoots ' + victim.Name() + ' with finger gun!')
+                                                    Message('BANG')
+                                                    Message(item.Name() + ' shoots ' + victim.Name() + ' with finger gun!')
                                                 else:
-                                                    Message('BANG ' + item.Name() + ' fires finger gun!')
+                                                    Message('BANG')
+                                                    Message(item.Name() + ' fires finger gun!')
                                     else:
                                         taskf.append(ts)
                             else:
@@ -5009,6 +5368,36 @@ while not tcod.console_is_window_closed():
                                     item.MoveTo(mayordoor)
                                 else:
                                     taskf.append(ts)
+                        elif name == 'diamwatch':
+                            diamcarrier = detail
+                            if item.room.name == 'mineshop':
+                                for dc in item.room.item_list:
+                                    if dc.anim and dc not in item.room.site.citizen:
+                                        if dc not in diamcarrier and dc != item.attack:
+                                            for dm in dc.inv:
+                                                if dm.tipo == 'diamond':
+                                                    ts.detail.append(dc)
+                                                    item.task.append(Task('leavedhere', None))
+                                                    break
+                                notdc = []
+                                for dc in diamcarrier:
+                                    if not CanSee(item, dc):
+                                        for ctz in item.room.site.citizen:
+                                            ctz.attack = dc
+                                        item.task.append(Task('theft alarm', None))
+                                        notdc.append(dc)
+                                    carrydiam = False
+                                    for dm in dc.inv:
+                                        if dm.tipo == 'diamond':
+                                            carrydiam = True
+                                            break
+                                    if not carrydiam:
+                                        notdc.append(dc)
+                                for ndc in notdc:
+                                    ts.detail.remove(ndc)
+                        elif name == 'leavedhere':
+                            if item.Say('leave the diamond here!', True):
+                                taskf.append(ts)
                         elif name == 'guard':
                             guarded = detail
                             interrogate = False
@@ -5064,7 +5453,7 @@ while not tcod.console_is_window_closed():
                                 item.MoveTo(gateroom.door)
                         elif name == 'price':
                             good, buyer = detail
-                            price = PRICE[good.tipo]
+                            price = TEMPLATE[good.tipo]['pr']
                             if buyer.charisma > 0:
                                 price -= 100
                                 if price < 100:
@@ -5182,7 +5571,7 @@ while not tcod.console_is_window_closed():
                                         if w.tipo == 'gold':
                                             coin = w
                                             break
-                                        elif w.tipo in WEAPONC:
+                                        elif w.tipo in WEAPONSTAB:
                                             weapon = w
                                             break
                                 if coin:
@@ -5214,7 +5603,7 @@ while not tcod.console_is_window_closed():
                     for ts in taskn:
                         item.task.append(ts)
 
-                    if item in item.room.site.citizen and item.room.name != 'smith':
+                    if item in item.room.site.citizen and item.room.name not in WEAPONSHOP:
                         for ics in CanSeeList(item):
                             if ics.anim and ics not in item.room.site.citizen and ics != item.attack:
                                 if ics in item.watch:
@@ -5266,13 +5655,7 @@ while not tcod.console_is_window_closed():
                                 item.Say('verb_mumbles', True)
                                 ta.body['body'] -= random.randint(1, 10)
                                 if ta == at:
-                                    text = random.choice(SHKSPELLEFF)
-                                    if text.startswith('antelopes') or text.startswith('chain'):
-                                        text = random.choice(METALM) + ' ' + text
-                                    elif text.startswith('lava'):
-                                        text = random.choice(['spiked', 'jagged', 'serrated']) + ' ' + text
-                                    text = 'you feel ' + text + ' your ' + random.choice(INNARD)
-                                    Message(text)
+                                    Message(Spelltx(item.tipo))
                                 if ta.body['body'] <= 0:
                                     ta.BreakLeg('body')
                         else:
