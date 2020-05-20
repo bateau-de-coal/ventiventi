@@ -3528,24 +3528,6 @@ view1_pnl = tcod.console_new(VIEW1_WD, VIEW1_HT)
 tcod.console_set_default_background(view1_pnl, tcod.grey)
 tcod.console_clear(view1_pnl)
 
-DIAG_GLYPH = {
-    'F': '*',
-    'FRF': '"',
-    'FR': '^',
-    'FRR': '^',
-    'R': '-',
-    'BRR': '_',
-    'BR': '_',
-    'BRB': '"',
-    'B': '.',
-    'BLB': ',',
-    'BL': '_',
-    'BLL': '_',
-    'L': '-',
-    'FLL': '^',
-    'FL': '^',
-    'FLF': '`'}
-
 KEY_DICT = {
     '.': 'WAIT',
     'k': 'F',
@@ -3855,6 +3837,43 @@ def XMa(dis):
         marg = dis//10 + 6
     return marg
 
+def Disdrtx(dis, dr):
+    '''Only used in FourViews()'''
+    if dr == 'F':
+        dis = dis + '*'
+    elif dr == 'FRF':
+        dis = dis + '^'
+    elif dr == 'FR':
+        dis = dis + '^'
+    elif dr == 'FRR':
+        dis = dis + '^'
+    elif dr == 'R':
+        dis = dis + '-'
+    elif dr == 'BRR':
+        dis = dis + '_'
+    elif dr == 'BR':
+        dis = dis + '_'
+    elif dr == 'BRB':
+        dis = dis + '_'
+    elif dr == 'B':
+        dis = dis + '.'
+    elif dr == 'BLB':
+        dis = '_' + dis
+    elif dr == 'BL':
+        dis = '_' + dis
+    elif dr == 'BLL':
+        dis = '_' + dis
+    elif dr == 'L':
+        dis = '-' + dis
+    elif dr == 'FLL':
+        dis = '^' + dis
+    elif dr == 'FL':
+        dis = '^' + dis
+    elif dr == 'FLF':
+        dis = '^' + dis
+
+    return dis
+
 def FourViews():
     global scope, autoscope
     tcod.console_clear(four_views_pnl)
@@ -3968,9 +3987,9 @@ def FourViews():
             if i.tipo in DOOR+MURAL and dis == 1:
                 distx = '///'
             else:
-                distx = str(dis) + 'm'
-            dirgl = DIAG_GLYPH[Direction(at, i, dn=16)]
-            distx += dirgl
+                distx = str(dis)
+            dr = Direction(at, i, dn=16)
+            distx = Disdrtx(distx, dr)
 
             xmarg = XMa(dis)
             xmarg += pxmarg
@@ -3996,14 +4015,14 @@ def FourViews():
             if dis <= 1:
                 sp = ' ' * 2
             else:
-                sp = ' ' * 8
+                sp = ' ' * 4
             if i.tipo in ANIMATE:
                 st = STANCE_GLYPH[i.stance]
             else:
                 st = ''            
 
             if d == 'F':
-                tx = st + ' ' + distx + '  ' + nm + sp + gl
+                tx = st + ' ' + nm + '  ' + distx + sp + gl
                 tcod.console_print_ex(
                     four_views_pnl, p-len(tx)-xmarg, y-ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
@@ -4012,7 +4031,7 @@ def FourViews():
                 y1 = y-ymarg
                 x1 = p-xmarg
             elif d == 'R':
-                tx = gl + sp + nm + '  ' + distx + ' ' + st
+                tx = gl + sp + distx + '  ' + nm + ' ' + st
                 tcod.console_print_ex(
                     four_views_pnl, p+xmarg, y-ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
@@ -4021,7 +4040,7 @@ def FourViews():
                 y1 = y-ymarg
                 x1 = p+xmarg
             elif d == 'B':
-                tx = gl + sp + nm + '  ' + distx + ' ' + st
+                tx = gl + sp + distx + '  ' + nm + ' ' + st
                 tcod.console_print_ex(
                     four_views_pnl, p+xmarg, y+ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
@@ -4030,7 +4049,7 @@ def FourViews():
                 y1 = y+ymarg
                 x1 = p+xmarg
             else:
-                tx = st + ' ' + distx + '  ' + nm + sp + gl
+                tx = st + ' ' + nm + '  ' + distx + sp + gl
                 tcod.console_print_ex(
                     four_views_pnl, p-len(tx)-xmarg, y+ymarg,
                     tcod.BKGND_NONE, tcod.LEFT,
@@ -4067,7 +4086,7 @@ def FourViews():
                     wall = ('/'*wallwd+'\n') * 2
                 textw += wall + '\n'
                 if dfw > 1:
-                    textw += str(dfw) + 'm\n'
+                    textw += str(dfw) + '\n'
                         
                 xmarg = XMa(dfw)
                 xmarg += pxmarg
@@ -4135,25 +4154,25 @@ def FourViews():
                         tcod.console_print_ex(
                             four_views_pnl, p-len(tx)-xmarg, y-ymarg,
                             tcod.BKGND_NONE, tcod.LEFT,
-                            '^_  '+tx)
+                            tx + '  ^')
                         y -= ystep
                     elif d == 'R':
                         tcod.console_print_ex(
                             four_views_pnl, p+xmarg, y-ymarg,
                             tcod.BKGND_NONE, tcod.LEFT,
-                            tx+'  _^')
+                            '^  ' + tx)
                         y -= ystep
                     elif d == 'B':
                         tcod.console_print_ex(
                             four_views_pnl, p+xmarg, y+ymarg,
                             tcod.BKGND_NONE, tcod.LEFT,
-                            tx+'  _^')
+                            '^  ' + tx)
                         y += ystep
                     else:
                         tcod.console_print_ex(
                             four_views_pnl, p-len(tx)-xmarg, y+ymarg,
                             tcod.BKGND_NONE, tcod.LEFT,
-                            '^_  '+tx)
+                            tx + '  ^')
                         y += ystep
         
     tcod.console_blit(
@@ -4485,11 +4504,11 @@ INTERFACE
   ^     TERRAIN
   |     
 <-+->  *              | STANDING
-  |   ` "
+  |   ^ ^
   v  ^   ^            + CROUCHING
     -  @  -
      _   _            _ PRONING
-      , "
+      _ _
        .              U UNBALANCED
 '''
     
