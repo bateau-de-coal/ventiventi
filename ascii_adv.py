@@ -1,3 +1,4 @@
+##try:
 import tcod
 import sys
 import random
@@ -290,7 +291,6 @@ CUTSDEEP = {
 WEAPONSTAB = [
     'sword',
     'scimitar',
-    'pickaxe',
     'dagger']
 
 WEAPONBASH = [
@@ -458,7 +458,7 @@ TEMPLATE = {
         'gl': '!'},
     'pouch': {
         'le': 15,
-        'wi': 3,
+        'wi': 15,
         'th': 15,
         'pr': 200,
         'gl': ')'},
@@ -921,6 +921,7 @@ class Order:
         self.price = price
         self.seller = seller
         self.good = good
+        self.paid = 0
         self.status = 'UNPAID'
 
 class Task:
@@ -1025,6 +1026,7 @@ class Item:
         self.attack = None
         self.attacksp = None
         self.tls = None  ##Target last seen
+        self.destination = None
         if facing is None:
             self.facing = random.choice(NESW)
         else:
@@ -1198,7 +1200,7 @@ class Item:
             n += ' loop'
         return n
 
-    def Au(self):
+    def PocketGold(self):
         au = 0
         for g in self.inv:
             if g.tipo == 'gold':
@@ -1215,25 +1217,27 @@ class Item:
         return content
 
     def TakeOff(self, equipment):
-        for weapon in self.wield:
-            if weapon == equipment:
-                i = self.wield.index(weapon)
-                self.wield[i] = None
-                break
-            elif isinstance(weapon, list):
-                if equipment in weapon:
-                    weapon.remove(equipment)
-                    if weapon == []:
-                        i = self.wield.index(weapon)
-                        self.wield[i] = None
+        if isinstance(equipment, list) or isinstance(equipment, tuple):
+            for eq in equipment:
+                self.TakeOff(eq)
+        else:
+            for weapon in self.wield:
+                if weapon == equipment:
+                    i = self.wield.index(weapon)
+                    self.wield[i] = None
                     break
-        for armor in self.wear:
-            if armor == equipment:
-                self.wear.remove(armor)
-                break
-        for b in self.inv:
-            if hasattr(b, 'bag') and equipment in b.bag:
-                b.bag.remove(equipment)
+                elif isinstance(weapon, list):
+                    if equipment in weapon:
+                        weapon.remove(equipment)
+                        if weapon == []:
+                            i = self.wield.index(weapon)
+                            self.wield[i] = None
+                        break
+            if equipment in self.wear:
+                self.wear.remove(equipment)
+            for b in self.inv:
+                if hasattr(b, 'bag') and equipment in b.bag:
+                    b.bag.remove(equipment)
 
     def FreeHand(self):
         free_hand = None
@@ -1326,7 +1330,9 @@ class Item:
                 dx, dy = to
                 if not translate:
                     if not (dx==0 and dy==0):
-                        self.facing = VECTOR1[dx+1][dy+1]
+                        fa = VECTOR1[dx+1][dy+1]
+                        if fa != 0:
+                            self.facing = fa
             if self.stance != self.defaultstance:
                 self.stance = self.defaultstance
                 result = 'GET_UP'
@@ -1616,6 +1622,32 @@ class Item:
                 result = self.Move(direction, translate=translate)
         return result
 
+    def Disinv(self, dr):
+        '''Remove from inv'''
+        if isinstance(dr, Item):
+            self.inv.remove(dr)
+            for bgc in dr.BagContent():
+                self.inv.remove(bgc)
+        elif isinstance(dr, list) or isinstance(dr, tuple):
+            for dr1 in dr:
+                self.inv.remove(dr1)
+                for bgc in dr1.BagContent():
+                    self.inv.remove(bgc)
+
+    def Entrinv(self, en):
+        '''Add to inv'''
+        if isinstance(en, Item):
+            self.inv.append(en)
+            en.x = self.x
+            en.y = self.y
+            for bgc in en.BagContent():
+                self.inv.append(bgc)
+                bgc.x = self.x
+                bgc.y = self.y
+        elif isinstance(en, list) or isinstance(en, tuple):
+            for en1 in en:
+                self.Entrinv(en1)
+
     def Skmod(self, skill_name):
         '''Skill modified by poison, etc'''
         if 'lead' in self.poison and 'mercury' not in self.poison:
@@ -1636,7 +1668,7 @@ class Item:
                 break
         if not can_block:
             for weapon in self.wield:
-                if WIH(weapon) and weapon not in self.blocking.keys():
+                if isinstance(weapon, Item) and weapon not in self.blocking.keys():
                     if weapon.tipo in SHIELD or weapon.length > 25:
                         i = self.wield.index(weapon)
                         if direction in HUMAN_BTDV[i]:
@@ -1691,24 +1723,8 @@ class Item:
                 if self.wield[i]:
                     dropped = self.wield[i]
                     self.wield[i] = None
-                    if WIH(dropped):
-                        self.inv.remove(dropped)
-                        if CanSee(self, at):
-                            Message(dropped.name + ' falls to the ground')
-                        for j in dropped.BagContent():
-                            self.inv.remove(j)
-                    else:
-                        text = ''
-                        for d in dropped:
-                            self.inv.remove(d)
-                            text += d.Name()
-                            for j in dropped.BagContent():
-                                self.inv.remove(j)
-                        if CanSee(self, at):
-                            if len(dropped) > 1:
-                                Message(text + ' fall to the ground')
-                            else:
-                                Message(text + ' falls to the ground')
+                    self.Disinv(dropped)
+                    Fall(dropped)
             elif part.startswith('leg') and self.stance == 2:
                 has_leg = False
                 for part1, hp1 in self.body.items():
@@ -1742,22 +1758,8 @@ class Item:
                             if self.wield[i]:
                                 dropped = self.wield[i]
                                 self.wield[i] = None
-                                if WIH(dropped):
-                                    self.inv.remove(dropped)
-                                    Message(dropped.name + ' falls to the ground')
-                                    for j in dropped.BagContent():
-                                        self.inv.remove(j)
-                                else:
-                                    text = ''
-                                    for d in dropped:
-                                        self.inv.remove(d)
-                                        text += d.Name()
-                                        for j in dropped.BagContent():
-                                            self.inv.remove(j)
-                                    if len(dropped) > 1:
-                                        Message(text + ' fall to the ground')
-                                    else:
-                                        Message(text + ' falls to the ground')
+                                self.Disinv(dropped)
+                                Fall(dropped)
 
     def Hit(self, target):
         ##Assuming both self and target are humanoid
@@ -1784,7 +1786,7 @@ class Item:
                         low = 0
                         high = self.thick
                     i = int(part[-1])
-                    if WIH(self.wield[i]):
+                    if isinstance(self.wield[i], Item):
                         weapon = self.wield[i]
                         weaponl = weapon.length
                         swing_list.append(('strikes', weapon, low-weaponl, high+weaponl))
@@ -1958,6 +1960,47 @@ def WeaponDam(weapon, attacker):
         d = random.randint(0, 1) * force
     return d
 
+def Fall(faller, fallmsg=True):
+    cs = False
+    if isinstance(faller, Item):
+        if CanSee(faller, at):
+            cs = True
+            if fallmsg:
+                Message(faller.name + ' falls to the ground')
+        if faller.flask:
+            faller.room.item_list.remove(faller)
+            cur_item_list.remove(faller)
+            if cs:
+                Message(faller.name + ' shatters')
+            for chem, quantity in faller.flask.items():
+                faller.room.aoe_list.append(AOE(chem, faller.x, faller.y, faller.room, quantity))
+                if cs:
+                    Message('a cloud of ' + CHEMN[chem])
+    elif isinstance(faller, list) or isinstance(faller, tuple):
+        if faller:
+            if CanSee(faller[0], at):
+                cs = True
+                if fallmsg:
+                    tx = ''
+                    for fl in faller:
+                        tx += fl.Name() + ' '
+                    tx = tx[:-1]
+                    if len(faller) > 1:
+                        Message(tx + ' fall to the ground')
+                    else:
+                        Message(tx + ' falls to the ground')
+            for fl in faller:
+                if fl.flask:
+                    fl.room.item_list.remove(fl)
+                    cur_item_list.remove(fl)
+                    if cs:
+                        Message(fl.name + ' shatters')
+                    for chem, quantity in fl.flask.items():
+                        fl.room.aoe_list.append(AOE(chem, fl.x, fl.y, fl.room, quantity))
+                        if cs:
+                            Message('a cloud of ' + CHEMN[chem])
+                
+
 def VAB(a, b):
     '''Vector from a to b'''
     if isinstance(b, Site):
@@ -2061,7 +2104,7 @@ def Direction(a, b, dn=4):
 
 def NESWtoFRBL(f, d):
     if d == 0:
-        return ''
+        return 'F'
     else:
         i = NESW.index(d) - NESW.index(f)
         if i < 0:
@@ -2445,7 +2488,7 @@ def Use():
                                 at.wield[i] = obj
                                 for j in obj.BagContent():
                                     at.inv.append(j)
-                                for f in at.room.item_list:
+                                for f in obj.room.item_list:
                                     if hasattr(f, 'finvt'):
                                         if obj in f.finvt:
                                             f.finvt.remove(obj)
@@ -2524,24 +2567,27 @@ def Use():
                     at.time -= 10
                 ##Another menu for trading
                 elif action == 't':
-                    selec = []
-                    for item in obj.stock:
-                        ordered = False
-                        for o in obj.order:
-                            if o.good == item:
-                                ordered = True
-                                break
-                        if not ordered:
-                            estmtxt = 'about ' + str(Coins(TEMPLATE[item.tipo]['pr'])) + ' gold    '
-                            selec.append([estmtxt + NameSco(item), item])
-                    if selec:
-                        chosen = Menu('ask the price of', selec, refresh=False)
-                        if chosen:
-                            item = chosen
-                            at.Say('how much is ' + NameSco(chosen) + '?', prompt=True, pr=False)
-                            obj.task.append(Task('price', [item, at]))
+                    if at in [obj.attack, obj.attacksp]:
+                        Prompt('the shopkeeper is hostile to you')
                     else:
-                        obj.task.append(Task('out of stock', None))
+                        selec = []
+                        for item in obj.stock:
+                            ordered = False
+                            for o in obj.order:
+                                if o.good == item:
+                                    ordered = True
+                                    break
+                            if not ordered:
+                                estmtxt = 'about ' + str(Coins(TEMPLATE[item.tipo]['pr'])) + ' gold    '
+                                selec.append([estmtxt + NameSco(item), item])
+                        if selec:
+                            chosen = Menu('ask the price of', selec, refresh=False)
+                            if chosen:
+                                item = chosen
+                                at.Say('how much is ' + NameSco(chosen) + '?', prompt=True, pr=False)
+                                obj.task.append(Task('price', [item, at]))
+                        else:
+                            obj.task.append(Task('out of stock', None))
                 ##Open or close door, or smash lock
                 elif action == 'o':
                     if at.HasPart('arm'):
@@ -2662,6 +2708,16 @@ def Au(g):
             v += 100
     return v
 
+def Transaction(buyer, seller, gold):
+    for o in buyer.order:
+        if o.status == 'UNPAID' and o.seller == seller:
+            o.paid += Au(gold)
+            if o.paid >= o.price:
+                o.status = 'WAITING FOR PICKUP'
+                seller.stock.remove(o.good)
+                o.good.owner = None
+            break
+
 def Give():
     has_given = False
     refused = False
@@ -2714,28 +2770,15 @@ def Give():
                             free_hand = False
                             for w in chosen1.wield:
                                 if w is None:
-                                    i = chosen1.wield.index(w)
-                                    chosen1.wield[i] = chosen
-                                    text = ''
-                                    if isinstance(chosen, list):
-                                        for c in chosen:
-                                            chosen1.inv.append(c)
-                                            at.TakeOff(c)
-                                            text += c.Name() + ' '
-                                        text = text[:-1]
-                                    else:
-                                        chosen1.inv.append(chosen)
-                                        at.TakeOff(chosen)
-                                        text = chosen.Name()
                                     free_hand = True
                                     has_given = True
-                                    Message(at.Name() + ' gives ' + text + ' to ' + chosen1.Name())
-                                    for o in at.order:
-                                        if o.status == 'UNPAID' and o.seller == chosen1 and Au(chosen) >= o.price:
-                                            o.status = 'WAITING FOR PICKUP'
-                                            chosen1.stock.remove(o.good)
-                                            o.good.owner = None
-                                            break
+                                    i = chosen1.wield.index(w)
+                                    at.Disinv(chosen)
+                                    at.TakeOff(chosen)
+                                    chosen1.Entrinv(chosen)
+                                    chosen1.wield[i] = chosen
+                                    Message(at.Name() + ' gives ' + NamePile(chosen) + ' to ' + chosen1.Name())
+                                    Transaction(at, chosen1, chosen)
                                     break
                             if not free_hand:
                                 Message(chosen1.Name() + ' has no free hand')
@@ -2757,11 +2800,11 @@ def Pouch():
     for w in at.wield:
         if isinstance(w, list):
             for w1 in w:
-                if w1.tipo == 'gold':
+                if w1.tipo in POUCHABLE:
                     storesmall = w1
                     break
         elif w is not None:
-            if w.tipo in POUCHABLE and w.owner is None:
+            if w.tipo in POUCHABLE:
                 storesmall = w
                 break
     if storesmall:
@@ -2779,9 +2822,14 @@ def Pouch():
                     break
     else:
         smalls = []
-        for ics in CanSeeList(at):
-            if ics.tipo in POUCHABLE and Distance(ics, at) == 0 and ics not in at.inv:
-                smalls.append(ics)
+        gotosmalls = []
+        for ics in FreeSt(rider=True):
+            if ics.tipo in POUCHABLE and ics.owner is None:
+                icsd = Distance(ics, at)
+                if icsd <= 0:
+                    smalls.append(ics)
+                else:
+                    gotosmalls.append([ics, icsd])
         if smalls:
             has_hand = False
             free_hand = False
@@ -2790,84 +2838,86 @@ def Pouch():
                     has_hand = True
                     i = int(part[-1])
                     if at.wield[i] is None:
-                        if smalls[0].tipo == 'gold':
-                            at.wield[i] = []
                         free_hand = True
-                        text = ''
-                        for small in smalls:
-                            at.inv.append(small)
-                            at.MoveInv()
-                            text += small.Name() + ' '
-                            if small.tipo == 'gold':
-                                at.wield[i].append(small)
-                            else:
-                                at.wield[i] = small
-                                break
-                            if len(at.wield[i]) >= 10:
-                                break
-                        Message(at.Name() + ' picks up ' + text)
+                        at.Entrinv(smalls)
+                        at.wield[i] = smalls
+                        Message(at.Name() + ' picks up ' + NamePile(smalls))
                         at.time -= 15
                         break
             if not has_hand:
                 Message('you have no hand')
             elif not free_hand:
                 Message('your hands are full')
+        elif gotosmalls:
+            goto = sorted(gotosmalls, key=lambda item: item[-1])[0][0]
+            at.MoveTo(goto)
 
-def Depouch():
+def Pay():
     '''Wield gold coins'''
     if not at.HasPart('arm'):
         Message('you have no hand')
     else:
-        emptyhand = None
-        oneinhand = None
-        halfemptyhand = None
+        freehand = False
         for w in at.wield:
             if w is None:
-                emptyhand = at.wield.index(w)
+                freehand = True
                 break
-            elif isinstance(w, Item) and w.tipo == 'gold':
-                oneinhand = at.wield.index(w)
-                break
-            elif isinstance(w, list) and w and w[0].tipo == 'gold' and len(w) <= 10:
-                halfemptyhand = at.wield.index(w)
-                break
-        if emptyhand is None and oneinhand is None and halfemptyhand is None:
-            Message('your hands are full')
-        elif halfemptyhand is not None:
-            for i in at.inv:
-                if i.tipo == 'gold' and i not in at.wield[halfemptyhand]:
-                    at.TakeOff(i)
-                    at.wield[halfemptyhand].append(i)
-                    Message(at.Name() + ' wields ' + i.Name())
-                    at.time -= 10
+            elif isinstance(w, Item):
+                if w.tipo == 'gold':
+                    freehand = True
                     break
-        elif oneinhand is not None:
-            for i in at.inv:
-                if i.tipo == 'gold' and i != at.wield[oneinhand]:
-                    at.TakeOff(i)
-                    onecoin = at.wield[oneinhand]
-                    at.wield[oneinhand] = [onecoin, i]
-                    Message(at.Name() + ' wields ' + i.Name())
-                    at.time -= 10
+            elif isinstance(w, list) or isinstance(w, tuple):
+                if w and w[0].tipo == 'gold':
+                    freehand = True
                     break
-        elif emptyhand is not None:
-            for i in at.inv:
-                if i.tipo == 'gold':
-                    at.TakeOff(i)
-                    at.wield[emptyhand] = i
-                    Message(at.Name() + ' wields ' + i.Name())
-                    at.time -= 10
-                    break
-
-def WIH(item):
-    '''Is item weapon in hand'''
-    if item is not None and not isinstance(item, list):
-        return True
-
+        if not freehand:
+            Message('you have no free hand')
+        else:
+            od = None
+            near = False
+            for o in at.order:
+                if o.status == 'UNPAID':
+                    od = o
+                    if Distance(o.seller, at) <= 1:
+                        near = True
+                        break
+            if od is None:
+                Message('you have no unpaid order')
+            else:
+                if not near:
+                    Message('there is no one nearby you can pay to')
+                else:
+                    coins = []
+                    value = 0
+                    for co in at.inv:
+                        if co.tipo == 'gold':
+                            coins.append(co)
+                            value += 100
+                            if value >= od.price - od.paid:
+                                break
+                    if not coins:
+                        Message('you have no money')
+                    else:
+                        receive = None
+                        for w in od.seller.wield:
+                            if w is None:
+                                receive = od.seller.wield.index(w)
+                                break
+                        if receive is None:
+                            Message(od.seller.Name() + ' has no free hand')
+                        else:
+                            at.Disinv(coins)
+                            at.TakeOff(coins)
+                            od.seller.Entrinv(coins)
+                            od.seller.wield[receive] = coins
+                            Transaction(at, od.seller, coins)
+                            Message(at.Name() + ' gives ' + NamePile(coins) + ' to ' + od.seller.Name())
+                            at.time -= 10
+                        
 def CarryArm(a):
     armed = False
     for w in a.wield:
-        if WIH(w) and w.tipo in WEAPON:
+        if isinstance(w, Item) and w.tipo in WEAPON:
             armed = True
             if a.room.site == hill and w.tipo == 'pickaxe':
                 armed = False
@@ -2991,13 +3041,7 @@ def Inv():
                         at.inv.remove(j)
                     Message(at.name + ' drops ' + item.Name())
                     at.time -= 10
-                    if item.flask:
-                        item.room.item_list.remove(item)
-                        cur_item_list.remove(item)
-                        Message(item.name + ' shatters')
-                        for chem, quantity in item.flask.items():
-                            item.room.aoe_list.append(AOE(chem, item.x, item.y, item.room, quantity))
-                            Message('a cloud of ' + CHEMN[chem])
+                    Fall(item, fallmsg=False)
                 elif verb == 'dm':
                     text = ''
                     for item1 in item:
@@ -3006,15 +3050,9 @@ def Inv():
                         at.TakeOff(item1)
                         for j in item1.BagContent():
                             at.inv.remove(j)
-                        if item1.flask:
-                            item1.room.item_list.remove(item1)
-                            cur_item_list.remove(item1)
-                            Message(item1.name + ' shatters')
-                            for chem, quantity in item1.flask.items():
-                                item1.room.aoe_list.append(AOE(chem, item1.x, item1.y, item1.room, quantity))
-                                Message('a cloud of ' + CHEMN[chem])
                     at.time -= 10
-                    Message(at.name + ' drops ' + text)                        
+                    Message(at.name + ' drops ' + text)
+                    Fall(item, fallmsg=False)
                 elif verb == 'q':
                     if at.HasPart('arm'):
                         at.inv.remove(item)
@@ -3200,7 +3238,7 @@ def Shop():
             chosen1 = Menu('?', selec1, refresh=False)
             if chosen1:
                 if chosen1 == 'p':
-                    Prompt('[g]ive the gold to shopkeeper and take the good')
+                    Prompt('[g]ive or [p]ay gold to the shopkeeper')
                 elif chosen1 == 'c':
                     at.task.append(Task('cancel order', order))
     else:
@@ -3225,15 +3263,40 @@ def PartN(part, long_form=True):
         n = part
     return n
 
-def NameSco(i):
-    n = i.Name()
-    if i.tipo in SHEATH:
-        for ibg in i.bag:
-            if ibg.tipo in WEAPON:
-                n += ' |hilt'
+def NamePile(i):
+    n = ''
+    if len(i) > 1:
+        count = 0
+        name = i[0].Name()
+        nsth = False
+        for small in i:
+            if name == small.Name(): 
+                count += 1
+            else:
+                nsth = True
                 break
-    elif i.tipo in DOOR:
-        n = DoorPlate(i, True)
+        n = str(count) + ' ' + name
+        if count > 1:
+            n += 's'
+        if nsth:
+            n += ' &s'
+    elif len(i) > 0:
+        n = i[0].Name()
+    return n
+
+def NameSco(i):
+    n = ''
+    if isinstance(i, Item):
+        n = i.Name()
+        if i.tipo in SHEATH:
+            for ibg in i.bag:
+                if ibg.tipo in WEAPON:
+                    n += ' |hilt'
+                    break
+        elif i.tipo in DOOR:
+            n = DoorPlate(i, True)
+    elif isinstance(i, list) or isinstance(i, tuple):
+        n = NamePile(i)
     return n
 
 def Scope(target, selfscope=False):
@@ -3305,8 +3368,6 @@ def Scope(target, selfscope=False):
             m = SCOGRIDWD
             n = SCOGRIDHT
             if w0:
-                if isinstance(w0, list):
-                    w0 = w0[0]
                 j0 = j - 1
                 u0, v0 = VECTORF[FRBL[j0]]
                 m0 = m*u0
@@ -3316,8 +3377,6 @@ def Scope(target, selfscope=False):
                     tcod.BKGND_NONE, tcod.LEFT,
                     NameSco(w0))
             if w1:
-                if isinstance(w1, list):
-                    w1 = w1[0]
                 j1 = j + 1
                 if j1 > 7:
                     j1 -= 8
@@ -3443,10 +3502,66 @@ def View():
                 item = chosen
                 Scope(item)
                 return item
+
+def SetDest():
+    selec = []
+    for i in FreeSt():
+        if i != at:
+            d = Direction(at, i, dn=8)
+            dis = Distance(at, i)
+            text = d + ' ' + str(dis) + '    '
+            ##For getting indentation when showing wielded or worn items, or items on table
+            selec.append([text + NameSco(i), i])
+            selec += PView(i, len(text))
+
+    if selec:
+        chosen = Menu('select destination:', selec)
+        if chosen:
+            if isinstance(chosen, Item):
+                at.destination = chosen
+            
+def Autotravel():
+    if at.destination is None:
+        at.Move(at.facing)
+    else:
+        if Distance(at, at.destination) <= 0:
+            at.destination = None
+            at.Move(at.facing)
+        else:
+            at.MoveTo(at.destination)
             
 ##Interface
-SCREEN_WD = 200
-SCREEN_HT = 100
+init = open('init.txt', 'r')
+initlst = ['']
+for lt in init.read():
+    if lt == '|':
+        initlst.append('')
+    else:
+        initlst[-1] += lt
+initwd, initht, initfont = initlst
+
+initwd = initwd[22:]
+initwd = int(initwd)
+initwd = max(90, initwd)
+initwd = min(200, initwd)
+
+initht = initht[23:]
+initht = int(initht)
+initht = max(60, initht)
+initht = min(100, initht)
+
+initfont = int(initfont[16:])
+initfont = max(1, initfont)
+initfont = min(3, initfont)
+fontd = [
+    'terminal8x8_gs_tc.png',
+    'dejavu_wide12x12_gs_tc.png',
+    'dejavu_wide16x16_gs_tc.png']
+
+fontpath = fontd[initfont-1]
+
+SCREEN_WD = initwd
+SCREEN_HT = initht
 
 MESSAGE_PNL_LF = SCREEN_WD // 2
 MESSAGE_PNL_TP = 0
@@ -3491,7 +3606,7 @@ SCOGRIDWD = VIEW_WD // 3
 SCOGRIDHT = VIEW_HT // 3
 SCOCEN = (SCOGRIDWD+5, SCOGRIDHT+5)
 
-font_path = 'dejavu_wide16x16_gs_tc.png'
+font_path = fontpath
 font_flags = tcod.FONT_TYPE_GREYSCALE | tcod.FONT_LAYOUT_TCOD
 tcod.console_set_custom_font(font_path, font_flags)
 window_title = 'ASCII Adventure 2020'
@@ -3551,11 +3666,13 @@ KEY_DICT = {
     'a': 'ATTACK',
     'f': 'AUTO-ATTACK',
     'v': 'VIEW',
-    'p': 'SHOP',
+    'O': 'SHOP',
     'g': 'GIVE',
     'w': 'WIELD',
     'm': 'POUCH',
-    'G': 'DEPOUCH',
+    'p': 'PAY',
+    's': 'SETDEST',
+    'd': 'AUTOTRAVEL',
     'M': 'MAP',
     '?': 'HELP',
     'ESC': 'EXIT'}
@@ -3689,7 +3806,7 @@ def WMap():
         tcod.BKGND_NONE, tcod.LEFT,
         text)
     for st, coordinate in wmapsite.items():
-        glyph = '***'
+        glyph = ''
         if 'mountain' in st.name:
             glyph = 'MONT.'
         elif 'Town' in st.name:
@@ -3874,15 +3991,35 @@ def Disdrtx(dis, dr):
 
     return dis
 
+def Elem0(pile):
+    e = None
+    if isinstance(pile, list) or isinstance(pile, tuple):
+        if pile:
+            e = pile[0]
+    else:
+        e = pile
+
+    return e
+
 def FourViews():
     global scope, autoscope
     tcod.console_clear(four_views_pnl)
 
     ##Items
     item_distance_dict = {}
+    piles = {}
     for i in FreeSt():
         if i != at:
-            item_distance_dict[i] = Distance(at, i)
+            idis = Distance(at, i)
+            if i.tipo in SMALL:
+                if idis in piles:
+                    piles[idis].append(i)
+                else:
+                    piles[idis] = [i]
+            else:
+                item_distance_dict[i] = Distance(at, i)
+    for dis, pile in piles.items():
+        item_distance_dict[tuple(pile)] = dis
     for aoe in CSmL(at):
         d = Distance(aoe, at)
         d -= aoe.radius
@@ -3896,7 +4033,8 @@ def FourViews():
         'B': []}
     ##Sort items by distance from @
     for i in sorted(item_distance_dict.items(), key=lambda item: item[1]):
-        direction_item_dict[Direction(at, i[0])].append(i[0])
+        drc = Direction(at, Elem0(i[0]))
+        direction_item_dict[drc].append(i[0])
     ##Sites
     site_distance_dict = {}
     for site in worldmap:
@@ -3984,11 +4122,12 @@ def FourViews():
         y = y1
         for i in direction_item_dict[d]:
             dis = item_distance_dict[i]
-            if i.tipo in DOOR+MURAL and dis == 1:
+            if isinstance(i, Item) and i.tipo in DOOR+MURAL and dis == 1:
                 distx = '///'
             else:
                 distx = str(dis)
-            dr = Direction(at, i, dn=16)
+            idr = Elem0(i)
+            dr = Direction(at, idr, dn=16)
             distx = Disdrtx(distx, dr)
 
             xmarg = XMa(dis)
@@ -4007,16 +4146,20 @@ def FourViews():
             xmarg = max(1, xmarg)
             ymarg = max(1, ymarg)
 
-            if i.tipo in DOOR:
-                nm = DoorPlate(i, True)
+            if isinstance(i, tuple):
+                nm = NamePile(i)
+                gl = Glyph(i[0])
             else:
-                nm = i.Name()
-            gl = Glyph(i)
+                if i.tipo in DOOR:
+                    nm = DoorPlate(i, True)
+                else:
+                    nm = i.Name()
+                gl = Glyph(i)
             if dis <= 1:
                 sp = ' ' * 2
             else:
                 sp = ' ' * 4
-            if i.tipo in ANIMATE:
+            if isinstance(i, Item) and i.tipo in ANIMATE:
                 st = STANCE_GLYPH[i.stance]
             else:
                 st = ''            
@@ -4483,11 +4626,13 @@ KEY BINDING
     f    ATTACK
     a    ATTACK (WITH TARGETTING)
     v    VIEW ITEM, MONSTER, FURNITURE...
-    p    SHOPPING CART
+    O    SHOPPING CART
     g    GIVE
-    G    TAKE OUT GOLD COINS
+    p    PAY
     w    WIELD/SHEATHE
-    m    AUTOPICKUP/AUTOSTORE
+    m    AUTOPICKUP/AUTOSTORE/AUTOMOVETO NEARBY VALUABLES
+    s    SET AUTOMOVE DESTINATION
+    d    AUTOMOVE TO DESTINATION
     M    MAP
     ?    HELP
     ESC  EXIT
@@ -5044,6 +5189,8 @@ for r in hill.room_list:
 atx = random.randint(70, 90)
 aty = random.randint(70, 90)
 at = Item('adv', atx, aty, town.room_list[0], facing=random.choice(NESW), eqstyle='civilian')
+##at = Item('adv', 1, 1, town.room_list[1], facing=random.choice(NESW), eqstyle='civilian')
+##at = Item('adv', 1, 1, town.room_list[1], facing=random.choice(NESW), eqstyle='civilian')
 ##Item('diamond', at.x, at.y, at.room)
 ##for i in range(10):
 ##    Item('gold', at.x, at.y, at.room, name='gold coin')
@@ -5106,7 +5253,7 @@ while not tcod.console_is_window_closed():
                         town.guest.append(at)
                 elif name == 'agree on price b':
                     price, seller, good = detail
-                    if at.Au() < price:
+                    if at.PocketGold() < price:
                         if at.Say('I don\'t have enough money', True):
                             seller.task.append(Task('beat scammer', at))
                             seller.attacksp = at
@@ -5195,10 +5342,14 @@ while not tcod.console_is_window_closed():
                 Give()
             elif command == 'POUCH':
                 Pouch()
-            elif command == 'DEPOUCH':
-                Depouch()
+            elif command == 'PAY':
+                Pay()
             elif command == 'WIELD':
                 Wield()
+            elif command == 'SETDEST':
+                SetDest()
+            elif command == 'AUTOTRAVEL':
+                Autotravel()
     for item in cur_item_list:
         if item.anim:
             if item != at:
@@ -5265,15 +5416,7 @@ while not tcod.console_is_window_closed():
                                     cs = False
                                 item.time -= 10
                                 taskf.append(ts)
-                                if obj.flask:
-                                    obj.room.item_list.remove(obj)
-                                    cur_item_list.remove(obj)
-                                    if cs:
-                                        Message(obj.name + ' shatters')
-                                    for chem, quantity in obj.flask.items():
-                                        obj.room.aoe_list.append(AOE(chem, obj.x, obj.y, obj.room, quantity))
-                                        if cs:
-                                            Message('a cloud of ' + CHEMN[chem])
+                                Fall(obj, fallmsg=False)
                         elif name == 'curse':
                             obj =  detail
                             if item.Say(obj, True):
@@ -5683,12 +5826,15 @@ while not tcod.console_is_window_closed():
                     if item.time > 0 and item.watch:
                         wa = item.watch[-1]
                         if CanSee(item, wa):
-                            fa = Direction(item, wa, dn='cardinal')
-                            if item.facing != fa:
-                                item.facing = fa
-                                item.time -= 10
-                                if CanSee(item, at):
-                                    Message(item.Name() + ' turns around')
+                            if CarryArm(wa):
+                                fa = Direction(item, wa, dn='cardinal')
+                                if item.facing != fa:
+                                    item.facing = fa
+                                    item.time -= 10
+                                    if CanSee(item, at):
+                                        Message(item.Name() + ' turns around')
+                            else:
+                                item.watch.remove(wa)
             ##Check if time is out of range
             if item.time > 0:
                 item.time = 0
@@ -5747,3 +5893,6 @@ while not tcod.console_is_window_closed():
                     if die:
                         item.BreakLeg('body')
                         item.suffocate = None
+##except Exception as e:
+##    print(e)
+##input()
